@@ -23,11 +23,10 @@ export const getDenoiseOriginal = (video) => {
 
 export const getDenoiseTool = () => {
   const root = fileURLToPath(new URL("../", import.meta.url));
-  const candidates = [join(root, ".cache/asr-tools/deep-filter-0.5.6-aarch64-apple-darwin"), join(root, "../ai-english-coach/.cache/asr-tools/deep-filter-0.5.6-aarch64-apple-darwin")];
-  const local = candidates.find(existsSync);
-  const tool = process.env.DEEP_FILTER_BIN || (process.platform === "darwin" && process.arch === "arm64" && local ? resolve(local) : "deep-filter");
+  const local = join(root, ".cache/asr-tools/deep-filter-0.5.6-aarch64-apple-darwin");
+  const tool = process.env.DEEP_FILTER_BIN || (process.platform === "darwin" && process.arch === "arm64" && existsSync(local) ? resolve(local) : "deep-filter");
   try { run(tool, ["--version"]); }
-  catch { throw new Error("找不到可运行的 DeepFilterNet；请安装 deep-filter 并加入 PATH，或用 DEEP_FILTER_BIN 指定可执行文件。降噪失败时不会退回原声继续处理。"); }
+  catch { throw new Error("找不到可运行的 DeepFilterNet；请准备本项目缓存中的工具，将 deep-filter 加入 PATH，或用 DEEP_FILTER_BIN 指定可执行文件。配置见 docs/environment.md。降噪失败时不会退回原声继续处理。"); }
   return tool;
 };
 

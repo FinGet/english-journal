@@ -72,6 +72,32 @@ const ContrastVisual: React.FC<{ visual: Extract<Visual, { kind: 'contrast' }>; 
   return item ? <div style={{ position: 'absolute', left: L.left, top: 285, width: TEXT_WIDTH }}><RisingText text={item.text} at={item.at} frame={frame} size={item.emphasis ? 82 : 68} color={item.emphasis ? C.accent : C.ink} /></div> : null;
 };
 
+const SequenceVisual: React.FC<{ visual: Extract<Visual, { kind: 'sequence' }>; frame: number }> = ({ visual, frame }) => {
+  const count = visual.steps.filter(step => frame >= step.at).length;
+  const row = 164;
+  return <div style={{ position: 'absolute', left: L.left, top: 490, width: TEXT_WIDTH }}>
+    <div style={{ color: C.muted, fontSize: 25, letterSpacing: 2, textTransform: 'uppercase' }}>{visual.label}</div>
+    <div style={{ position: 'absolute', right: 0, top: 60, display: 'flex', alignItems: 'baseline', color: count === visual.steps.length ? C.accent : C.ink }}>
+      <span style={{ fontSize: 156, fontWeight: 600, letterSpacing: -7, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{String(count).padStart(2, '0')}</span>
+      <span style={{ fontSize: 34, marginLeft: 12, color: C.muted }}>/ {String(visual.steps.length).padStart(2, '0')}</span>
+    </div>
+    <div style={{ position: 'relative', marginTop: 128, width: 350, height: (visual.steps.length - 1) * row + 90 }}>
+      <svg width={62} height={(visual.steps.length - 1) * row + 62} style={{ position: 'absolute', left: 0, top: 0 }}>
+        <path d={`M31 31V${(visual.steps.length - 1) * row + 31}`} stroke={C.line} strokeWidth={2} fill="none" />
+        {visual.steps.slice(1).map((step, i) => <path key={i} d={`M31 ${i * row + 31}v${row}`} stroke={C.accent} strokeWidth={3} fill="none" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - progress(frame, step.at, 22)} />)}
+      </svg>
+      {visual.steps.map((step, i) => {
+        const p = progress(frame, step.at - 4, 18);
+        return <div key={i} style={{ position: 'absolute', top: i * row, left: 0, width: 350, minHeight: 62, display: 'flex', alignItems: 'center', gap: 26 }}>
+          <div style={{ flexShrink: 0, width: 60, height: 60, borderRadius: '50%', border: `1px solid ${C.line}`, background: interpolateColors(p, [0, 1], [C.background, C.accent]), color: interpolateColors(p, [0, 1], [C.muted, C.paper]), display: 'grid', placeItems: 'center', fontSize: 24, position: 'relative' }}>{String(i + 1).padStart(2, '0')}</div>
+          <div style={{ opacity: p, transform: `translateX(${(1 - p) * 14}px)`, fontSize: 46, fontWeight: 600, lineHeight: 1.12, letterSpacing: -1 }}>{step.text}</div>
+        </div>;
+      })}
+    </div>
+    <Plate at={visual.resultAt - 4} frame={frame} style={{ marginTop: 26, width: 350, paddingTop: 22, borderTop: `2px solid ${C.accent}`, fontSize: 34, lineHeight: 1.2, fontWeight: 600, color: C.accent }}>{visual.result}</Plate>
+  </div>;
+};
+
 const CaptionBlock: React.FC<{ caption: Caption }> = ({ caption }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [handle] = useState(() => delayRender('Checking bilingual caption fit'));
@@ -88,9 +114,9 @@ const CaptionBlock: React.FC<{ caption: Caption }> = ({ caption }) => {
     }).catch(cancelRender);
     return () => { active = false; continueRender(handle); };
   }, [caption.english, caption.chinese, handle]);
-  return <div ref={ref} data-journal="captions" style={{ position: 'absolute', left: L.left, width: TEXT_WIDTH, top: L.captionTop, zIndex: 1000, textAlign: 'center' }}>
+  return <div ref={ref} data-journal="captions" style={{ position: 'absolute', left: L.left, width: TEXT_WIDTH, top: L.captionTop, zIndex: 1000, textAlign: 'center', color: '#000' }}>
     <div data-language="en" style={{ fontSize: L.englishSize, fontWeight: 600, lineHeight: 1.16, textWrap: 'balance' }}>{caption.english}</div>
-    <div data-language="zh" style={{ fontSize: L.chineseSize, fontWeight: 400, lineHeight: 1.3, color: C.muted, marginTop: 12, textWrap: 'balance' }}>{caption.chinese}</div>
+    <div data-language="zh" style={{ fontSize: L.chineseSize, fontWeight: 400, lineHeight: 1.3, marginTop: 12, textWrap: 'balance' }}>{caption.chinese}</div>
   </div>;
 };
 
@@ -111,6 +137,7 @@ const ShotArt: React.FC<{ shot: Shot; frame: number }> = ({ shot, frame }) => {
     {v.kind === 'media' && <MediaVisual visual={v} shot={shot} frame={frame} />}
     {v.kind === 'flow' && <FlowVisual visual={v} frame={frame} />}
     {v.kind === 'contrast' && <ContrastVisual visual={v} frame={frame} />}
+    {v.kind === 'sequence' && <SequenceVisual visual={v} frame={frame} />}
     {v.kind === 'comparison' && <ComparisonVisual visual={v} frame={frame} shot={shot} />}
     {v.kind === 'closing' && <>
       <Plate at={v.at - 5} frame={frame} style={{ position: 'absolute', left: L.left, top: 395, maxWidth: TEXT_WIDTH, fontSize: 29, color: C.muted }}>{v.prompt}</Plate>
@@ -118,49 +145,58 @@ const ShotArt: React.FC<{ shot: Shot; frame: number }> = ({ shot, frame }) => {
   </>;
 };
 
-const OutroAction: React.FC<{ frame: number; index: number }> = ({ frame, index }) => {
+const OutroIcon: React.FC<{ frame: number; index: number; size: number }> = ({ frame, index, size }) => {
   const state = actionState(frame, index);
-  const p = progress(frame, 7 + index * 8, 18);
   const active = index === 1 ? '#e8b72f' : '#fe2c55';
   const color = interpolateColors(state.activation, [0, 1], [C.line, active]);
-  const label = index === 0 ? 'Like' : index === 1 ? 'Save' : state.confirmed ? 'Following' : 'Follow';
-  return <div data-outro-action={index} data-confirmed={state.confirmed} style={{ width: (TEXT_WIDTH - 70) / 3, height: 255, borderRadius: 24, background: C.paper, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, opacity: p, transform: `translateY(${(1 - p) * 28}px)`, boxShadow: `0 15px 30px ${C.ink}0c` }}>
-    <div style={{ width: 88, height: 88, position: 'relative' }}>
-      <svg width={150} height={150} viewBox="-75 -75 150 150" style={{ position: 'absolute', left: -31, top: -31, overflow: 'visible', opacity: state.burst }} fill="none" stroke={active} strokeWidth={2.5} strokeLinecap="round">
+  return <div data-outro-action={index} data-confirmed={state.confirmed} style={{ width: size, height: size, position: 'relative', flexShrink: 0 }}>
+      <svg width={size * 150 / 88} height={size * 150 / 88} viewBox="-75 -75 150 150" style={{ position: 'absolute', left: -size * 31 / 88, top: -size * 31 / 88, overflow: 'visible', opacity: state.burst }} fill="none" stroke={active} strokeWidth={2.5} strokeLinecap="round">
         <circle r={state.radius} opacity={.35} />
         {Array.from({ length: 6 }, (_, i) => <path key={i} d={`M0 ${-state.radius - 3}v-7`} transform={`rotate(${i * 60 + 20})`} />)}
       </svg>
-      <svg width={88} height={88} viewBox="0 0 88 88" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'relative', overflow: 'visible', transform: `scale(${state.scale}) rotate(${state.rotation}deg)` }}>
-        {index === 0 ? <path d="M44 73S13 54 13 32C13 13 35 12 44 28C53 12 75 13 75 32C75 54 44 73 44 73Z" fill={color} /> : index === 1 ? <path d="M44 10L54 32L78 35L60 52L65 77L44 65L23 77L28 52L10 35L34 32Z" fill={color} /> : <>
-          <circle cx="44" cy="36" r="31" fill={C.background} stroke={C.line} strokeWidth={2} />
-          <text x="44" y="38" textAnchor="middle" dominantBaseline="central" fill={C.ink} stroke="none" fontSize={40} fontWeight={600} fontFamily={B.font}>{B.mark}</text>
+      {index < 2 ? <div style={{ position: 'relative', width: size, height: size, transform: `scale(${state.scale}) rotate(${state.rotation}deg)` }}>
+        <Img src={staticFile(index === 0 ? 'heart.svg' : 'star.svg')} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0 }} />
+        <div style={{ position: 'absolute', inset: 7 * size / 88, backgroundColor: color, maskImage: `url("${staticFile(index === 0 ? 'heart.svg' : 'star.svg')}")`, maskSize: 'contain', maskRepeat: 'no-repeat', maskPosition: 'center' }} />
+      </div> : <svg width={size} height={size} viewBox="0 0 88 88" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'relative', overflow: 'visible', transform: `scale(${state.scale}) rotate(${state.rotation}deg)` }}>
+          <circle cx="44" cy="36" r="31" fill={C.accent} stroke={C.accent} strokeWidth={2} />
+          <text x="44" y="38" textAnchor="middle" dominantBaseline="central" fill={C.paper} stroke="none" fontSize={40} fontWeight={600} fontFamily={B.font}>{B.mark}</text>
           <circle cx="44" cy="69" r="16" fill={interpolateColors(state.activation, [0, 1], [active, C.paper])} stroke={state.activation > .5 ? C.line : C.paper} strokeWidth={2} />
           <path d="M37 69H51M44 62V76" stroke={C.paper} strokeWidth={3} opacity={state.plus} style={{ transformOrigin: '44px 69px', transform: `rotate(${(1 - state.plus) * 90}deg)` }} />
           <path d="M37 69L42 74L52 63" stroke={active} strokeWidth={3} pathLength={1} strokeDasharray="1" strokeDashoffset={1 - state.check} opacity={state.check} />
-        </>}
-      </svg>
-    </div>
-    <div style={{ fontSize: 36, fontWeight: 600 }}>{label}</div>
+      </svg>}
   </div>;
 };
 
-const Outro: React.FC<{ frame: number }> = ({ frame }) => <AbsoluteFill style={{ background: C.background, color: C.ink, fontFamily: B.font }}>
+const OutroAction: React.FC<{ frame: number; index: number }> = ({ frame, index }) => {
+  const p = progress(frame, 12 + index * 6, 16);
+  return <div style={{ display: 'flex', alignItems: 'center', gap: 16, opacity: p, transform: `translateY(${(1 - p) * 16}px)` }}>
+    <OutroIcon frame={frame} index={index} size={76} />
+    <div style={{ fontSize: 36, fontWeight: 500, color: C.muted }}>{index === 0 ? 'Like' : 'Save'}</div>
+  </div>;
+};
+
+const Outro: React.FC<{ frame: number }> = ({ frame }) => {
+  const follow = actionState(frame, 2);
+  const intro = progress(frame, 0, 18);
+  return <AbsoluteFill style={{ background: C.background, color: C.ink, fontFamily: B.font, overflow: 'hidden' }}>
   {OUTRO_SOUND_CUES.map((cue, i) => <Sequence key={i} from={cue.at} durationInFrames={cue.duration}><Audio src={staticFile(B.outroSfx[i].src)} volume={B.outroSfx[i].volume} /></Sequence>)}
-  <div style={{ position: 'absolute', left: L.left, top: 165, maxWidth: TEXT_WIDTH, fontSize: 24, fontWeight: 500, letterSpacing: 2.5, color: C.muted }}>{B.series}</div>
-  <div style={{ position: 'absolute', top: 465, left: L.left, width: TEXT_WIDTH, textAlign: 'center', fontSize: 64, fontWeight: 600 }}>{B.name}</div>
-  <div data-journal="slogan" style={{ position: 'absolute', top: 580, left: L.left + 50, width: TEXT_WIDTH - 100, textAlign: 'center', fontSize: 40, lineHeight: 1.35, color: C.muted, fontWeight: 400 }}>{B.slogan}</div>
-  <div style={{ position: 'absolute', top: 795, left: L.left, width: TEXT_WIDTH, textAlign: 'center' }}><RisingText text="Keep showing up." at={0} frame={frame} size={72} /></div>
-  <div style={{ position: 'absolute', left: L.left, top: 1030, display: 'flex', gap: 35 }}>
-    {[0, 1, 2].map(index => <OutroAction key={index} index={index} frame={frame} />)}
+  <div style={{ position: 'absolute', left: L.left + (TEXT_WIDTH - 360) / 2, top: 400, width: 360, height: 360, borderRadius: '50%', border: `1px solid ${C.line}`, opacity: intro * .65, transform: `scale(${.9 + intro * .1})` }} />
+  <div style={{ position: 'absolute', left: L.left, top: 460, width: TEXT_WIDTH, display: 'flex', justifyContent: 'center', opacity: intro, transform: `translateY(${(1 - intro) * 24}px)` }}><OutroIcon frame={frame} index={2} size={260} /></div>
+  <div style={{ position: 'absolute', top: 805, left: L.left, width: TEXT_WIDTH, textAlign: 'center', fontSize: 76, fontWeight: 600, opacity: progress(frame, 5, 16) }}>{B.name}</div>
+  <div data-journal="slogan" style={{ position: 'absolute', top: 925, left: L.left + 90, width: TEXT_WIDTH - 180, textAlign: 'center', textWrap: 'balance', fontSize: 36, lineHeight: 1.45, color: C.muted, fontWeight: 400, opacity: progress(frame, 9, 16) }}>{B.slogan}</div>
+  <div data-journal="follow-prompt" data-confirmed={follow.confirmed} style={{ position: 'absolute', left: L.left + (TEXT_WIDTH - 310) / 2, top: 1160, width: 310, height: 94, borderRadius: 47, background: interpolateColors(follow.activation, [0, 1], [C.accent, C.ink]), color: C.paper, display: 'grid', placeItems: 'center', fontSize: 36, fontWeight: 600, opacity: progress(frame, 12, 16), transform: `scale(${1 + (follow.scale - 1) * .2})` }}>{follow.confirmed ? 'Following' : 'Follow'}</div>
+  <div style={{ position: 'absolute', left: L.left, top: 1360, width: TEXT_WIDTH, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 64 }}>
+    {[0, 1].map(index => <OutroAction key={index} index={index} frame={frame} />)}
   </div>
-</AbsoluteFill>;
+  </AbsoluteFill>;
+};
 
 export const JournalOutro: React.FC = () => <><JournalFonts /><Outro frame={useCurrentFrame()} /></>;
 
 export const JournalFilm: React.FC<ProductionProps> = ({ production: p, debugOverlay = false }) => {
   const current = useCurrentFrame();
   if (!p) throw new Error('Production metadata was not loaded');
-  if (current >= p.durationInFrames) return <Sequence from={p.durationInFrames} durationInFrames={B.outroFrames}><JournalOutro /></Sequence>;
+  if (current >= p.durationInFrames) return p.outro === false ? null : <Sequence from={p.durationInFrames} durationInFrames={B.outroFrames}><JournalOutro /></Sequence>;
   const f = current;
   const index = p.shots.findIndex(s => f >= s.from && f < s.to);
   const shot = p.shots[Math.max(0, index)];

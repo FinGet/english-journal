@@ -6,6 +6,7 @@ import { getEpisodePaths } from "./project-paths.mjs";
 import { checkProductionFile } from './quality.mjs';
 import { finishDelivery } from './delivery.mjs';
 import { compositionFrames } from '../src/production/validate.mjs';
+import { writePost } from './post.mjs';
 
 const project = JSON.parse(readFileSync('project.config.json', 'utf8'));
 const [command, ...args] = process.argv.slice(2);
@@ -40,3 +41,4 @@ const extra = command === "studio" ? [] : [command === 'cover' ? 'JournalCover' 
 const inputProps = command === "studio" && values.episode === undefined && values.edition === undefined ? [] : [props];
 execFileSync(process.execPath, [cli, command === 'cover' ? 'still' : command === 'sample' ? 'render' : command, "src/index.tsx", ...extra, ...inputProps, ...(['still', 'cover'].includes(command) ? [`--frame=${command === 'cover' ? 0 : values.frame}`, `--scale=${values.scale}`] : ['render', 'sample'].includes(command) ? [`--scale=${values.scale}`, `--concurrency=${project.export.concurrency}`, ...(command === 'sample' ? [`--frames=${values.from}-${sampleEnd}`] : [])] : [])], { stdio: "inherit" });
 if (isProductionRender) finishDelivery({ master: renderOutput, output, work, production: { ...production, durationInFrames: totalFrames }, scale: Number(values.scale) });
+if ((isProductionRender || command === 'cover') && production.publication) writePost({ production, output: paths.output, work: paths.work });

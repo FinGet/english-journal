@@ -4,7 +4,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync,
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { compositionFrames, validateProduction, validateBrand } from '../src/production/validate.mjs';
+import { compositionFrames, productionAssets, validateProduction, validateBrand } from '../src/production/validate.mjs';
 import { makeProduction, importEpisode } from './new-episode.mjs';
 import { checkProductionFile } from './quality.mjs';
 import { getEpisodePaths } from './project-paths.mjs';
@@ -32,9 +32,9 @@ test('outro actions activate in order and follow reaches a drawn check before th
   assert(OUTRO_SOUND_CUES.every(cue => cue.at + cue.duration <= 90));
 });
 
-const base = () => makeProduction({ episode: 87, title: 'Learning to Listen', prefix: 'ep87/journal', frames: 60, sourceFrames: 60, sourceHash: 'a'.repeat(64), programHash: 'b'.repeat(64),
+const base = () => ({ ...makeProduction({ episode: 87, title: 'Learning to Listen', prefix: 'ep87/journal', frames: 60, sourceFrames: 60, sourceHash: 'a'.repeat(64), programHash: 'b'.repeat(64),
   captions: [{ from: 0, to: 15, english: 'Hello.', chinese: '你好' }, { from: 30, to: 50, english: 'Again.', chinese: '又见面了' }],
-  words: [{ from: 0, to: 15, text: 'Hello.' }, { from: 30, to: 50, text: 'Again.' }] });
+  words: [{ from: 0, to: 15, text: 'Hello.' }, { from: 30, to: 50, text: 'Again.' }] }), publication: { title: '先学会倾听', body: '这次口语练习，聊聊倾听与表达。' } });
 
 test('a new topic needs no EP10 code and preserves genuine caption gaps', () => {
   const p = base();
@@ -70,13 +70,37 @@ test('scene-specific content is bounded by its semantic shot', () => {
 test('a cover uses a real program frame and requires its own approval', () => {
   const p = base();
   p.review.transcript = 'confirmed';
-  p.cover = { frame: 45, title: ['Listen First.'], status: 'draft' };
+  p.cover = { frame: 45, title: ['先学会倾听'], status: 'draft' };
   assert.doesNotThrow(() => validateProduction(p));
   assert.throws(() => validateProduction(p, { final: true, cover: true }), /approve/);
   p.cover.status = 'approved';
+  assert.throws(() => validateProduction(p, { final: true, cover: true }), /cutout/);
+  p.cover.portrait = 'ep87/journal/cover/portrait.png';
   assert.doesNotThrow(() => validateProduction(p, { final: true, cover: true }));
+  assert(productionAssets(p).includes(p.cover.portrait));
+  p.cover.portrait = '../portrait.png';
+  assert.throws(() => validateProduction(p), /Unsafe asset/);
+  p.cover.portrait = 'ep87/journal/cover/portrait.png';
+  p.cover.title = ['English'];
+  assert.throws(() => validateProduction(p), /Chinese episode topic/);
+  p.cover.title = ['先学会倾听'];
   p.cover.frame = 60;
   assert.throws(() => validateProduction(p), /Cover frame/);
+});
+
+test('a sequence keeps its steps inside the shot and before the result; excerpts can omit the outro', () => {
+  const p = base();
+  p.shots[0].visual = { kind: 'sequence', label: 'The route', steps: [{ text: 'First', at: 10 }, { text: 'Second', at: 25 }], result: 'Both complete', resultAt: 40 };
+  assert.doesNotThrow(() => validateProduction(p));
+  assert.equal(compositionFrames(p, { outroFrames: 90 }), 150);
+  p.outro = false;
+  assert.equal(compositionFrames(p, { outroFrames: 90 }), 60);
+  p.shots[0].visual.steps[1].at = 41;
+  assert.throws(() => validateProduction(p), /ordered before the result/);
+  p.shots[0].visual.steps[1].at = 60;
+  assert.throws(() => validateProduction(p), /outside shot/);
+  p.shots[0].visual.steps[1].at = 5;
+  assert.throws(() => validateProduction(p), /ordered before the result/);
 });
 
 test('one brand contract enforces English graphics and complete color tokens', () => {
@@ -95,6 +119,7 @@ test('real media import, take identity, alternate episode routing and non-destru
   copyFileSync(new URL('../brand.config.json', import.meta.url), join(dir, 'brand.config.json'));
   copyFileSync(new URL('../project.config.json', import.meta.url), join(dir, 'project.config.json'));
   mkdirSync(join(dir, 'public/brand/sfx'), { recursive: true });
+  for (const file of ['heart.svg', 'star.svg']) copyFileSync(new URL(`../public/${file}`, import.meta.url), join(dir, `public/${file}`));
   for (const file of ['like', 'save', 'follow']) {
     copyFileSync(new URL(`../public/brand/sfx/${file}.wav`, import.meta.url), join(dir, `public/brand/sfx/${file}.wav`));
   }

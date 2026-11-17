@@ -5,6 +5,7 @@ export type Visual =
   | { kind: 'speaker' }
   | { kind: 'media'; images: { src: string; at: number; label?: string }[]; treatment: 'stack' | 'push' }
   | { kind: 'contrast'; items: { text: string; at: number; emphasis?: boolean }[] }
+  | { kind: 'sequence'; label: string; steps: { text: string; at: number }[]; result: string; resultAt: number }
   | { kind: 'flow'; nodes: { text: string; at: number }[]; result: string; resultAt: number; note: string }
   | { kind: 'comparison'; image: string; left: string; right: string; items: { side: 'left' | 'right'; text: string; at: number }[] }
   | { kind: 'closing'; prompt: string; at: number };
@@ -17,6 +18,7 @@ export type Shot = {
 export type Production = {
   format: 'english-journal/v2'; episode: number; title: string; topic: string;
   fps: 30; durationInFrames: number;
+  outro?: boolean;
   media: {
     source: string; sourceSha256: string; sourceDurationInFrames: number;
     program: string; programSha256: string; audio?: string; volume?: number;
@@ -26,7 +28,8 @@ export type Production = {
   captions: Caption[]; words: Stamp[]; shots: Shot[];
   cues: { at: number; duration: number; src: string; volume: number }[];
   review: { transcript: 'draft' | 'confirmed'; direction: 'draft' | 'ready'; notes: string };
-  cover?: { frame: number; title: string[]; status: 'draft' | 'approved'; note?: string };
+  publication?: { title: string; body: string };
+  cover?: { frame: number; title: string[]; subtitle?: string; portrait?: string; status: 'draft' | 'approved'; note?: string };
 };
 export type Brand = {
   series: string; name: string; slogan: string; mark: string; outroFrames: number;

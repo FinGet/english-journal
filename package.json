@@ -11,6 +11,8 @@
     "setup": "node scripts/setup.mjs",
     "episode:new": "node scripts/new-episode.mjs",
     "cover": "node scripts/remotion.mjs cover",
+    "post": "node scripts/post.mjs",
+    "publish:feishu": "node scripts/publish-feishu.mjs",
     "previews": "node scripts/previews.mjs",
     "sample": "node scripts/remotion.mjs sample",
     "check": "node scripts/check.mjs && tsc --noEmit",

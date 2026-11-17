@@ -9,14 +9,13 @@ parser.add_argument('video', type=Path)
 parser.add_argument('output', type=Path)
 parser.add_argument('--vocabulary', default='')
 project = Path(__file__).resolve().parents[1]
-cached = [project / '.cache/asr-models/whisper-large-v3-turbo', project.parent / 'ai-english-coach/.cache/asr-models/whisper-large-v3-turbo']
-local_default = next((p for p in cached if (p / 'weights.safetensors').is_file()), cached[0])
+local_default = project / '.cache/asr-models/whisper-large-v3-turbo'
 parser.add_argument('--model', type=Path, default=Path(os.environ.get('LOCAL_ASR_MODEL', local_default)))
 args = parser.parse_args()
 assert args.video.is_file(), 'Input video is missing'
 assert not args.output.exists(), 'Preserve the existing transcript; use another output path'
 model = args.model.resolve()
-assert (model / 'weights.safetensors').is_file(), 'Local model missing; no download attempted'
+assert (model / 'weights.safetensors').is_file(), 'Local model missing: prepare .cache/asr-models/whisper-large-v3-turbo or set --model / LOCAL_ASR_MODEL; see docs/environment.md. No download attempted.'
 os.environ['HF_HUB_OFFLINE'] = '1'
 import mlx_whisper
 

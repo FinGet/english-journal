@@ -6,13 +6,15 @@
 
 用户当前自行在浏览器验收，agent只修改，不运行测试、构建、抽帧、审片、音频测量或渲染。下文命令是正式制作入口，本次整理没有执行。历史视频、字幕和模型缓存保留。
 
+当前期数和制作版本以episode.config.json为准，制作状态以对应motion.json为准。试看片段可设置outro:false，正式整片默认追加品牌片尾；不能把某次试片状态当成整个项目的固定状态。
+
 ```sh
 npm run dev
 ```
 
 浏览器正式入口只有 `EnglishJournal`（整片）、`JournalCover`（独立3:4封面）、`JournalOutro`（通用有声片尾）。旧EP06/EP10实验和旧视觉组件已移出源码，恢复材料见 `output/_work/project-cleanup-20261117/legacy-code.tar.gz`。
 
-封面使用1080×1440的独立构图，默认scale=1；人物帧和短英文主题在motion.json的cover字段配置。用户看过并确认后才导出，账号与slogan仍按Journal品牌排列。
+封面使用1080×1440的独立构图，默认scale=1；中文主题、可选英文副题、真实人物帧来源及透明PNG抠图在motion.json的cover字段配置。纸纹、网格、大标题与人物剪贴形成固定系列风格，账号下保留完整slogan。用户看过并确认后才导出。
 
 ## 制作流程
 
@@ -23,9 +25,9 @@ npm run dev
 3. 核对原话，依据未降噪原声提出静音预剪；先报告，后应用。
 4. 用同一剪辑清单生成program与成片词表，重新组织中英双语字幕。
 5. 对剪后的原声生成降噪副本，单独处理口播响度；保留原声与处理记录。
-6. 导入新edition，写语义分镜和来源，按本期内容选择公共组件。
+6. 导入新edition，写语义分镜和来源；提到具体事件、地点、场景、人物或战队时主动考虑真实配图，核对对象与事件后选材，按本期内容选择公共组件。
 7. 用户在网页检查字幕、构图、动效和声音，确认后更新制作状态。
-8. 经用户允许再导出；最终文件检查通过后才替换成品。
+8. 提炼20字符以内的中文标题和一小段文案，生成post.md。经用户允许再导出；最终文件检查通过后才替换成品。用户要求发送时，再单独发送飞书journal群。
 
 ## 配置
 
@@ -36,10 +38,12 @@ npm run dev
 | `episode.config.json` | 当前期数与edition清单 |
 | `public/epXX/<edition>/motion.json` | 原片/成片身份、剪辑映射、词表、双语字幕、分镜、音效、口播固定增益和审查状态 |
 
-通用规则参考ai-english-coach的制作约定与源码，取参数和素材保护方法；Journal保持自己的品牌与画面，不引入纠错、评分、发音训练、TTS或Coach视觉模板。封面借鉴其固定母版、3:4比例、主题与自然人物选帧流程，详见[封面制作](docs/cover-workflow.md)。
+每期最终交付video.mp4、cover.png和post.md。发布文案保存在motion.json的publication字段，格式与飞书使用见[发布交付](docs/publishing.md)。
+
+本仓库完整定义制作标准，不需要另一个业务项目或历史聊天作为背景。技术参数读取project.config.json，品牌读取brand.config.json，内容与时间轴读取本期motion.json；制作流程见本仓库文档，封面见[封面制作](docs/cover-workflow.md)。不引入纠错、评分、发音训练或TTS。历史来源见docs/provenance.md，仅保留归属与沿革，不是常规制作必读材料。
 
 - 基础画布1080×1920、30fps；默认scale=2，导出2160×3840，PNG中间帧、CRF16。scale=1为1080p，4/3为2K。
-- 核心文字左100px、右180px；主体可延展全画布，不因字幕缩小。字幕仍y1500，英文52px、中文34px，层级最高。
+- 核心文字左右各100px，可用宽度880px；主体可延展全画布，不因字幕缩小。字幕仍y1500，英文52px、中文34px，层级最高。
 - 口播目标−18 LUFS，通常接受−19～−17；处理前留约−2 dBTP，最终编码≤−1 dBTP。优先固定增益，保留动态。音频已处理时播放增益为1。
 - DeepFilterNet默认6dB衰减上限，户外可选12dB。转写可用降噪副本，静音删减必须依据原声，避免重复降噪。
 - 导出不再将整条混音拉到−15 LUFS；口播在预览前处理，音效保持用户确认的相对音量。
@@ -57,6 +61,7 @@ npm run trim -- --video /path/to/original.mp4 --words output/_work/ep11/journal/
 npm run voice -- --input /path/to/denoised-program.mp4 --output output/_work/ep11/journal/voice.wav
 npm run episode:new -- --episode 11 --edition journal --video /path/to/program.mp4 --source /path/to/original.mp4 --edit /path/to/edit.json --audio /path/to/voice.wav --transcript /path/to/bilingual.json --title "Learning to Listen" --select
 npm run dev
+npm run post -- --episode 11 --edition journal
 ```
 
 用户恢复验证或明确导出后，再按需要使用：
@@ -78,10 +83,10 @@ npm run render:2k -- --episode 11 --edition journal
 ## 文件和环境
 
 - `src/index.tsx` → `src/Root.tsx` → `src/production/` 是唯一正式链路。
-- `output/epXX/`只存 `video.mp4`、`cover.png`；工作文件统一放 `output/_work/epXX/<edition>/`。
+- `output/epXX/`交付 `video.mp4`、`cover.png`、`post.md`；工作文件统一放 `output/_work/epXX/<edition>/`，飞书传输副本及发送记录放 `output/_work/epXX/feishu/`。
 - 历史原片与清单保留在public下，但旧格式不再加载旧渲染器；需重新制作时导入一个新edition，不原地迁移。
-- Node20.19+、FFmpeg/ffprobe、本机Chrome；本机node_modules继续复用ai-english-coach，不安装第二套Remotion。
-- Whisper和DeepFilterNet先找本工程缓存，再找ai-english-coach缓存或显式环境路径，缺失时停止，不自动下载。Python需使用已有mlx_whisper环境。
+- Node20.19+、FFmpeg/ffprobe、可用Chrome；依赖按本仓库package-lock.json安装，不要求相邻项目或node_modules软链接。
+- Whisper使用本工程.cache/asr-models/whisper-large-v3-turbo，或--model/LOCAL_ASR_MODEL显式路径；DeepFilterNet使用本工程缓存、DEEP_FILTER_BIN或PATH。脚本不搜索其他业务项目，缺失时停止、不自动下载。Python需使用安装了mlx_whisper的环境。详见[独立环境准备](docs/environment.md)。
 - 可复用的素材保护/时间轴契约测试保留，旧期数及旧场景的实验测试已归档。测试当前没有执行。
 
 ## Git仓库

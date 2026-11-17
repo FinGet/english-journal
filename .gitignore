@@ -15,9 +15,11 @@ public/ep*/
 public/_cache/
 docs/history/
 
-# Only the shared sound bank and active font are distributed.
+# Shared sounds, supplied engagement icons and the active font are distributed.
 public/*
 !public/brand/
+!public/heart.svg
+!public/star.svg
 !public/fonts/
 public/fonts/*
 !public/fonts/outfit-latin.woff2

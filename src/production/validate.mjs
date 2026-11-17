@@ -16,11 +16,16 @@ export function validateBrand(brand) {
   fail(typeof brand.font === 'string' && brand.font.trim(), 'Brand font missing');
   for (const key of ['background', 'ink', 'muted', 'accent', 'line', 'paper']) fail(/^#[\da-f]{6}$/i.test(brand.palette?.[key]), `Invalid brand color: ${key}`);
 }
-export const compositionFrames = (production, brand) => production.durationInFrames + brand.outroFrames;
+export const compositionFrames = (production, brand) => production.durationInFrames + (production.outro === false ? 0 : brand.outroFrames);
+export function validatePublication(post) {
+  fail(typeof post?.title === 'string' && post.title.trim() && !/[\r\n]/.test(post.title) && Array.from(post.title.trim()).length <= 20, 'Post title must be a single line of at most 20 characters');
+  fail(typeof post.body === 'string' && post.body.trim() && !/[\r\n]/.test(post.body.trim()) && Array.from(post.body.trim()).length <= 300, 'Post body must be one short paragraph of at most 300 characters');
+}
 export function validateProduction(p, { final = false, cover = false } = {}) {
   fail(p?.format === 'english-journal/v2', 'Unknown production format');
   fail(Number.isInteger(p.episode) && p.episode > 0 && p.episode < 10000, 'Invalid episode');
   fail(p.fps === 30 && Number.isInteger(p.durationInFrames) && p.durationInFrames > 0, 'Invalid frame clock');
+  fail(p.outro === undefined || typeof p.outro === 'boolean', 'Invalid outro setting');
   english(p.title, 'Episode title', 70); english(p.topic, 'Topic', 70);
   const asset = (src) => fail(safeAsset(src), `Unsafe asset path: ${src}`);
   const frame = f => Number.isInteger(f) && f >= 0 && f <= p.durationInFrames;
@@ -64,12 +69,22 @@ export function validateProduction(p, { final = false, cover = false } = {}) {
     fail(Array.isArray(s.titles), `Missing title beats: ${s.id}`);
     for (const t of s.titles) { at(t.at); english(t.text, 'Shot title', 48); if (t.until !== undefined) fail(frame(t.until) && t.until > t.at && t.until <= s.to, 'Invalid title hold'); }
     const v = s.visual;
-    fail(v && ['speaker', 'media', 'contrast', 'flow', 'comparison', 'closing'].includes(v.kind), `Unknown visual: ${s.id}`);
+    fail(v && ['speaker', 'media', 'contrast', 'sequence', 'flow', 'comparison', 'closing'].includes(v.kind), `Unknown visual: ${s.id}`);
     if (v.kind === 'media') {
       fail(['stack', 'push'].includes(v.treatment) && v.images?.length > 0 && v.images.length <= 3, 'Invalid media treatment');
       for (const image of v.images) { asset(image.src); at(image.at); if (image.label) english(image.label, 'Media label', 32); }
     }
     if (v.kind === 'contrast') { fail(v.items?.length >= 2 && v.items.length <= 4, 'Contrast needs 2–4 beats'); for (const item of v.items) { at(item.at); english(item.text, 'Contrast text', 32); } }
+    if (v.kind === 'sequence') {
+      english(v.label, 'Sequence label', 28); english(v.result, 'Sequence result', 32); at(v.resultAt);
+      fail(v.steps?.length >= 2 && v.steps.length <= 4, 'Sequence needs 2–4 steps');
+      let previousAt = s.from;
+      for (const step of v.steps) {
+        at(step.at); english(step.text, 'Sequence step', 18);
+        fail(step.at >= previousAt && step.at <= v.resultAt, 'Sequence steps must be ordered before the result');
+        previousAt = step.at;
+      }
+    }
     if (v.kind === 'flow') {
       fail(v.nodes?.length >= 2 && v.nodes.length <= 3, 'Flow needs 2–3 inputs');
       for (const node of v.nodes) { at(node.at); english(node.text, 'Flow node', 18); }
@@ -86,19 +101,28 @@ export function validateProduction(p, { final = false, cover = false } = {}) {
   fail(Array.isArray(p.cues), 'Missing audio cue list');
   for (const c of p.cues) { asset(c.src); fail(frame(c.at) && Number.isInteger(c.duration) && c.duration > 0 && c.at + c.duration <= p.durationInFrames && Number.isFinite(c.volume) && c.volume >= 0 && c.volume <= .35, 'Invalid sound cue'); }
   fail(['draft', 'confirmed'].includes(p.review?.transcript) && ['draft', 'ready'].includes(p.review?.direction), 'Missing review status');
+  if (p.publication !== undefined) validatePublication(p.publication);
   if (p.cover) {
     fail(frame(p.cover.frame) && p.cover.frame < p.durationInFrames, 'Cover frame must reference the actual speaking program');
     fail(Array.isArray(p.cover.title) && p.cover.title.length >= 1 && p.cover.title.length <= 3, 'Cover headline needs one to three short lines');
-    p.cover.title.forEach(line => english(line, 'Cover headline', 18));
+    for (const line of p.cover.title) fail(typeof line === 'string' && line.trim() && Array.from(line).length <= 8, 'Cover headline: use at most eight characters per line');
+    fail(/\p{Script=Han}/u.test(p.cover.title.join('')), 'Cover headline must include the Chinese episode topic');
+    if (p.cover.subtitle !== undefined) english(p.cover.subtitle, 'Cover subtitle', 48);
+    if (p.cover.portrait !== undefined) { asset(p.cover.portrait); fail(p.cover.portrait.toLowerCase().endsWith('.png'), 'Cover portrait must be a transparent PNG cutout'); }
     fail(['draft', 'approved'].includes(p.cover.status), 'Missing cover approval status');
   }
-  if (cover && final) fail(p.cover?.status === 'approved', 'Choose the real portrait frame and headline in Studio, then approve the cover before final cover export');
+  if (cover && final) {
+    fail(p.cover?.status === 'approved', 'Choose the real portrait frame and headline in Studio, then approve the cover before final cover export');
+    fail(Boolean(p.cover.portrait), 'Final cover requires a prepared transparent portrait cutout');
+  }
   if (final) fail(p.review.transcript === 'confirmed', 'Final export requires confirmed transcript; drafts remain available in Studio');
   if (final && !cover) fail(p.review.direction === 'ready', 'Final video export requires a ready director plan; drafts remain available in Studio');
+  if (final && !cover) validatePublication(p.publication);
   return p;
 }
 export function productionAssets(p) {
   const sources = [p.media.source, p.media.program, ...(p.media.audio ? [p.media.audio] : []), ...p.cues.map(c => c.src)];
+  if (p.cover?.portrait) sources.push(p.cover.portrait);
   for (const { visual: v } of p.shots) {
     if (v.kind === 'media') sources.push(...v.images.map(i => i.src));
     if (v.kind === 'comparison') sources.push(v.image);

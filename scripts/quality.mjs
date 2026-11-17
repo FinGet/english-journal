@@ -11,7 +11,7 @@ export function checkProductionFile(file, { final = false, cover = false, report
   const brand = JSON.parse(readFileSync('brand.config.json', 'utf8'));
   validateBrand(brand);
   const root = realpathSync('public');
-  const assets = [...new Set([...productionAssets(p), ...brand.outroSfx.map(sound => sound.src)])].map(src => {
+  const assets = [...new Set([...productionAssets(p), ...brand.outroSfx.map(sound => sound.src), 'heart.svg', 'star.svg'])].map(src => {
     const path = resolve('public', src);
     if (!existsSync(path) || !realpathSync(path).startsWith(root + sep)) throw new Error(`Missing asset or asset outside public: ${src}`);
     return { src, sha256: sha256(path) };
@@ -27,7 +27,7 @@ export function checkProductionFile(file, { final = false, cover = false, report
   if (!audio.streams.some(s => s.codec_type === 'audio') || Math.abs(Number(audio.format.duration) * p.fps - p.durationInFrames) > 1) throw new Error('Voice and program clocks differ or voice is missing');
   const warnings = [];
   if (p.review.transcript !== 'confirmed' || p.review.direction !== 'ready') warnings.push('DRAFT: transcript/direction review is incomplete; final export is blocked.');
-  const result = { format: p.format, episode: p.episode, frames: p.durationInFrames, seconds: p.durationInFrames / p.fps, deliveryFrames: compositionFrames(p, brand), outroFrames: brand.outroFrames, captions: p.captions.length, shots: p.shots.length, review: p.review, assets, warnings };
+  const result = { format: p.format, episode: p.episode, frames: p.durationInFrames, seconds: p.durationInFrames / p.fps, deliveryFrames: compositionFrames(p, brand), outroFrames: p.outro === false ? 0 : brand.outroFrames, captions: p.captions.length, shots: p.shots.length, review: p.review, assets, warnings };
   if (report) { mkdirSync(resolve(report, '..'), { recursive: true }); writeFileSync(report, JSON.stringify(result, null, 2) + '\n'); }
   console.log(`Checked Journal v2 EP${p.episode}: ${result.shots} semantic shots, ${result.captions} bilingual captions, ${result.frames} frames. ${warnings.join(' ')}`);
   return result;
