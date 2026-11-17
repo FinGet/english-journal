@@ -1,0 +1,24 @@
+node_modules/
+node_modules
+output/
+build/
+.cache/
+.env
+.env.*
+!.env.example
+.DS_Store
+__pycache__/
+*.pyc
+*.partial
+episode.config.json
+public/ep*/
+public/_cache/
+docs/history/
+
+# Only the shared sound bank and active font are distributed.
+public/*
+!public/brand/
+!public/fonts/
+public/fonts/*
+!public/fonts/outfit-latin.woff2
+!public/fonts/Outfit-OFL.txt

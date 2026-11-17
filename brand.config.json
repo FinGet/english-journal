@@ -1,0 +1,21 @@
+{
+  "series": "FINDING MY VOICE",
+  "name": "张木示",
+  "slogan": "This world only rewards those who persist.",
+  "outroFrames": 90,
+  "outroSfx": [
+    { "src": "brand/sfx/like.wav", "volume": 0.32 },
+    { "src": "brand/sfx/save.wav", "volume": 0.30 },
+    { "src": "brand/sfx/follow.wav", "volume": 0.28 }
+  ],
+  "mark": "Z",
+  "palette": {
+    "background": "#f7f3eb",
+    "ink": "#282721",
+    "muted": "#706e65",
+    "accent": "#c65a30",
+    "line": "#d6cfc0",
+    "paper": "#fffcf7"
+  },
+  "font": "'Journal Sans', 'Helvetica Neue', 'PingFang SC', sans-serif"
+}

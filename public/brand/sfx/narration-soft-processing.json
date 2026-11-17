@@ -1,0 +1,17 @@
+[
+  {
+    "file": "transition-soft.wav",
+    "source": "leveled-pk-transition-transition-soft.mp3",
+    "filter": "highpass=f=160,lowpass=f=3400,atrim=duration=0.43,asetpts=PTS-STARTPTS,afade=t=in:d=0.025,afade=t=out:st=0.27:d=0.16"
+  },
+  {
+    "file": "element-soft.wav",
+    "source": "pop.mp3",
+    "filter": "highpass=f=120,lowpass=f=3800,atrim=duration=0.27,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=0.16:d=0.11"
+  },
+  {
+    "file": "paper-soft.wav",
+    "source": "paper.mp3",
+    "filter": "highpass=f=200,lowpass=f=3800,atrim=duration=0.35,asetpts=PTS-STARTPTS,afade=t=in:d=0.020,afade=t=out:st=0.21:d=0.14"
+  }
+]

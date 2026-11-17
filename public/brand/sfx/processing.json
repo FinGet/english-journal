@@ -1,0 +1,23 @@
+[
+  {
+    "file": "like.wav",
+    "source": "pop.mp3",
+    "duration": 0.24,
+    "pitchRatio": 1,
+    "peakTargetDbfs": -3
+  },
+  {
+    "file": "save.wav",
+    "source": "pop.mp3",
+    "duration": 0.28,
+    "pitchRatio": 1.2,
+    "peakTargetDbfs": -3
+  },
+  {
+    "file": "follow.wav",
+    "source": "ding.mp3",
+    "duration": 0.38,
+    "pitchRatio": 1,
+    "peakTargetDbfs": -3
+  }
+]

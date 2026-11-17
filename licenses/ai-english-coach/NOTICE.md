@@ -1,0 +1,1 @@
+Denoising implementation adapted from ../ai-english-coach/scripts/denoise.mjs under Apache-2.0. Retained waveform alignment, media identity, caching and error handling; removed in-place apply mode and added shared local tool discovery. Codec, audio and layout policies derived from the local Coach README and source on 2026-11-17.
