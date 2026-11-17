@@ -10,12 +10,12 @@
   ],
   "mark": "Z",
   "palette": {
-    "background": "#f7f3eb",
-    "ink": "#282721",
-    "muted": "#706e65",
-    "accent": "#c65a30",
-    "line": "#d6cfc0",
-    "paper": "#fffcf7"
+    "background": "#f4f6f3",
+    "ink": "#173d3a",
+    "muted": "#61716b",
+    "accent": "#a85134",
+    "line": "#cfd9d2",
+    "paper": "#ffffff"
   },
   "font": "'Journal Sans', 'Helvetica Neue', 'PingFang SC', sans-serif"
 }

@@ -29,7 +29,7 @@ const BrandLockup: React.FC<{ episode?: number }> = ({ episode }) => <div data-j
   {episode !== undefined && <div style={{ alignSelf: 'flex-start', marginTop: 9, fontSize: 24, color: C.muted }}>EP.{String(episode).padStart(2, '0')}</div>}
 </div>;
 
-const RisingText: React.FC<{ text: string; frame: number; at: number; size?: number; color?: string }> = ({ text, frame, at, size = 70, color = C.accent }) => <span style={{ fontSize: size, lineHeight: 1.08, fontWeight: 600, letterSpacing: -1.7, color }}>
+const RisingText: React.FC<{ text: string; frame: number; at: number; size?: number; color?: string }> = ({ text, frame, at, size = 70, color = C.ink }) => <span style={{ fontSize: size, lineHeight: 1.08, fontWeight: 600, letterSpacing: -1.7, color }}>
   {text.split(' ').map((word, wi, all) => <React.Fragment key={wi}><span style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>{Array.from(word).map((ch, ci) => {
     const start = at - 7 + Math.min(12, (all.slice(0, wi).join(' ').length + ci) * .6);
     return <span key={ci} style={{ display: 'inline-block', opacity: progress(frame, start, 20), transform: `translateY(${(1 - progress(frame, start, 11)) * size * .44}px)` }}>{ch}</span>;
@@ -50,7 +50,7 @@ const MediaVisual: React.FC<{ visual: Extract<Visual, { kind: 'media' }>; shot: 
   {visual.images.map((image, i) => {
     const push = interpolate(frame, [shot.from, shot.to], [1, 1.035], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
     const stacked = visual.treatment === 'stack';
-    return <Plate key={image.src + i} at={image.at - 7} frame={frame} style={{ position: 'absolute', left: stacked ? L.left + i * 55 : L.left, top: stacked ? 470 + i * 255 : 475, width: stacked ? 700 - i * 30 : TEXT_WIDTH, height: stacked ? 610 : 1295, overflow: 'hidden', borderRadius: 18, boxShadow: '0 18px 38px #3e30241a' }}>
+    return <Plate key={image.src + i} at={image.at - 7} frame={frame} style={{ position: 'absolute', left: stacked ? L.left + i * 55 : L.left, top: stacked ? 470 + i * 255 : 475, width: stacked ? 700 - i * 30 : TEXT_WIDTH, height: stacked ? 610 : 1295, overflow: 'hidden', borderRadius: 18, boxShadow: `0 18px 38px ${C.ink}1a` }}>
       <Img src={staticFile(image.src)} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${push})` }} />
       {image.label && <div style={{ position: 'absolute', left: 25, top: 25, background: C.paper, padding: '10px 18px', borderRadius: 8, fontSize: 28, fontWeight: 600, color: C.ink }}>{image.label}</div>}
     </Plate>;
@@ -59,7 +59,7 @@ const MediaVisual: React.FC<{ visual: Extract<Visual, { kind: 'media' }>; shot: 
 
 const FlowVisual: React.FC<{ visual: Extract<Visual, { kind: 'flow' }>; frame: number }> = ({ visual, frame }) => <div style={{ position: 'absolute', left: L.left, top: 510, width: TEXT_WIDTH, height: 1260 }}>
   {visual.nodes.map((node, i) => <React.Fragment key={i}>
-    <Plate at={node.at - 4} frame={frame} style={{ position: 'absolute', left: i * 280, top: i === 1 ? 65 : 0, width: 250, height: 180, borderRadius: 18, background: C.paper, padding: '50px 12px', textAlign: 'center', boxShadow: '0 12px 25px #3e302410', boxSizing: 'border-box', fontSize: 36, fontWeight: 600 }}>{node.text}</Plate>
+    <Plate at={node.at - 4} frame={frame} style={{ position: 'absolute', left: i * 280, top: i === 1 ? 65 : 0, width: 250, height: 180, borderRadius: 18, background: C.paper, padding: '50px 12px', textAlign: 'center', boxShadow: `0 12px 25px ${C.ink}10`, boxSizing: 'border-box', fontSize: 36, fontWeight: 600 }}>{node.text}</Plate>
     <svg width={820} height={440} style={{ position: 'absolute', inset: 0, overflow: 'visible' }}><path d={`M ${i * 280 + 125} ${i === 1 ? 245 : 180} C ${i * 280 + 125} 350, 175 330, 175 435`} fill="none" stroke={C.accent} strokeWidth={3} pathLength={1} strokeDasharray="1" strokeDashoffset={1 - progress(frame, node.at + 6, 22)} opacity={frame >= node.at ? .55 : 0} /></svg>
   </React.Fragment>)}
   <Plate at={visual.resultAt - 5} frame={frame} style={{ position: 'absolute', left: 0, top: 440, width: 350, height: 210, background: C.accent, color: C.paper, borderRadius: 22, display: 'grid', placeItems: 'center', fontSize: 55, fontWeight: 600 }}>{visual.result}</Plate>
@@ -97,7 +97,7 @@ const CaptionBlock: React.FC<{ caption: Caption }> = ({ caption }) => {
 const ComparisonVisual: React.FC<{ visual: Extract<Visual, { kind: 'comparison' }>; frame: number; shot: Shot }> = ({ visual, frame, shot }) => <div style={{ position: 'absolute', left: L.left, top: 480, width: TEXT_WIDTH }}>
   <div style={{ height: 460, borderRadius: 18, overflow: 'hidden' }}><Img src={staticFile(visual.image)} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${1 + (frame - shot.from) / (shot.to - shot.from) * .025})` }} /></div>
   <div style={{ display: 'flex', gap: 24, marginTop: 26 }}>
-    {(['left', 'right'] as const).map(side => <div key={side} style={{ flex: 1, minHeight: 300, borderRadius: 18, padding: '32px 24px', boxSizing: 'border-box', background: side === 'right' ? '#f1e1d4' : C.paper }}>
+    {(['left', 'right'] as const).map(side => <div key={side} style={{ flex: 1, minHeight: 300, borderRadius: 18, padding: '32px 24px', boxSizing: 'border-box', background: side === 'right' ? interpolateColors(.1, [0, 1], [C.background, C.accent]) : C.paper }}>
       <div style={{ fontSize: 29, color: C.muted, marginBottom: 15 }}>{visual[side]}</div>
       {visual.items.filter(i => i.side === side).map((item, i) => <Plate key={i} at={item.at - 4} frame={frame} style={{ fontSize: 36, lineHeight: 1.3, marginBottom: 12, fontWeight: 600, color: side === 'right' ? C.accent : C.ink }}>{item.text}</Plate>)}
     </div>)}
@@ -124,7 +124,7 @@ const OutroAction: React.FC<{ frame: number; index: number }> = ({ frame, index 
   const active = index === 1 ? '#e8b72f' : '#fe2c55';
   const color = interpolateColors(state.activation, [0, 1], [C.line, active]);
   const label = index === 0 ? 'Like' : index === 1 ? 'Save' : state.confirmed ? 'Following' : 'Follow';
-  return <div data-outro-action={index} data-confirmed={state.confirmed} style={{ width: (TEXT_WIDTH - 70) / 3, height: 255, borderRadius: 24, background: C.paper, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, opacity: p, transform: `translateY(${(1 - p) * 28}px)`, boxShadow: '0 15px 30px #3e30240c' }}>
+  return <div data-outro-action={index} data-confirmed={state.confirmed} style={{ width: (TEXT_WIDTH - 70) / 3, height: 255, borderRadius: 24, background: C.paper, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, opacity: p, transform: `translateY(${(1 - p) * 28}px)`, boxShadow: `0 15px 30px ${C.ink}0c` }}>
     <div style={{ width: 88, height: 88, position: 'relative' }}>
       <svg width={150} height={150} viewBox="-75 -75 150 150" style={{ position: 'absolute', left: -31, top: -31, overflow: 'visible', opacity: state.burst }} fill="none" stroke={active} strokeWidth={2.5} strokeLinecap="round">
         <circle r={state.radius} opacity={.35} />
@@ -171,7 +171,7 @@ export const JournalFilm: React.FC<ProductionProps> = ({ production: p, debugOve
   const caption = p.captions.find(c => f >= c.from && f < c.to);
   return <AbsoluteFill style={{ background: C.background, color: C.ink, fontFamily: B.font, overflow: 'hidden' }}>
     <JournalFonts />
-    <div style={{ position: 'absolute', right: -180, top: 580, width: 650, height: 650, borderRadius: '50%', background: 'radial-gradient(circle, #e8cdb330 0%, transparent 68%)' }} />
+    <div style={{ position: 'absolute', right: -180, top: 580, width: 650, height: 650, borderRadius: '50%', background: `radial-gradient(circle, ${C.ink}0c 0%, transparent 68%)` }} />
     <BrandLockup episode={p.episode} />
     {index > 0 && transition < 1 && <AbsoluteFill style={{ opacity: 1 - transition, transform: `translateY(${-transition * 20}px)` }}><ShotArt shot={previous} frame={f} /></AbsoluteFill>}
     <AbsoluteFill style={{ opacity: transition, transform: `translateY(${(1 - transition) * 20}px)` }}><ShotArt shot={shot} frame={f} /></AbsoluteFill>
@@ -182,7 +182,7 @@ export const JournalFilm: React.FC<ProductionProps> = ({ production: p, debugOve
     {p.cues.map((cue, i) => <Sequence key={i} from={cue.at} durationInFrames={cue.duration}><Audio src={staticFile(cue.src)} volume={cue.volume} /></Sequence>)}
     {caption && <CaptionBlock key={caption.from} caption={caption} />}
     {debugOverlay && <>
-      <div style={{ position: 'absolute', inset: 24, outline: '2px dashed #c65a30', zIndex: 2000 }} />
+      <div style={{ position: 'absolute', inset: 24, outline: `2px dashed ${C.accent}`, zIndex: 2000 }} />
       <div style={{ position: 'absolute', top: 1840, left: 110, color: C.muted, fontSize: 24, zIndex: 2000 }}>FULL CANVAS · CAPTIONS ON TOP · {shot.id} · {f}</div>
     </>}
   </AbsoluteFill>;
