@@ -3,6 +3,7 @@ import { Img, staticFile } from 'remotion';
 import brand from '../../brand.config.json';
 import project from '../../project.config.json';
 import type { Shot, Visual } from './types';
+import { DepthLayer, DepthStage, FlipPanel } from './Css3D';
 import { ElementReveal, progress } from './visual-motion';
 
 const C = brand.palette, L = project.layout;
@@ -101,6 +102,7 @@ export const GroupChatVisual: React.FC<Props<'group-chat'>> = ({ visual, shot, f
   const beat = visual.beats.filter(item => frame >= item.at).at(-1) ?? visual.beats[0];
   const savedAt = visual.beats.find(item => item.action === 'saved')?.at;
   const saved = savedAt !== undefined && frame >= savedAt;
+  const nameFlip = savedAt === undefined ? 0 : progress(frame, savedAt, 28);
   const currentName = saved ? visual.newName : visual.oldName;
   const info = beat.action === 'info' || beat.action === 'saved';
   const rename = beat.action === 'rename';
@@ -113,7 +115,7 @@ export const GroupChatVisual: React.FC<Props<'group-chat'>> = ({ visual, shot, f
     </div> : <div style={{ position: 'absolute', left: L.left, top: 650, width: 270 }}>
       <div style={{ position: 'relative', height: 144 }}><svg width={240} height={140} style={{ position: 'absolute', inset: 0 }}><path d="M42 39L125 81L204 28M125 81L192 122" fill="none" stroke={C.line} strokeWidth={2} /></svg>{[[12, 8], [95, 50], [174, 0], [162, 92]].map(([x, y], i) => <div key={i} style={{ position: 'absolute', left: x, top: y, padding: 4, background: C.paper, borderRadius: 14, boxShadow: '0 4px 10px #173d3a0c' }}><Person size={46} color={['#b7c8bd', '#b4c8ce', '#cbbdac', '#adbcc8'][i]} /></div>)}</div>
       <div style={{ marginTop: 30, fontSize: 18, letterSpacing: 2, color: C.muted }}>GROUP NAME</div>
-      <div style={{ marginTop: 18, fontSize: 34, lineHeight: 1.14, fontWeight: 600, letterSpacing: -.7, overflowWrap: 'anywhere' }}>{currentName}</div>
+      <FlipPanel progress={nameFlip} perspective={900} style={{ marginTop: 18, width: 270, height: 126 }} faceStyle={{ display: 'flex', alignItems: 'flex-start', fontSize: 34, lineHeight: 1.14, fontWeight: 600, letterSpacing: -.7, overflowWrap: 'anywhere' }} front={visual.oldName} back={visual.newName} />
       {saved && <ElementReveal at={savedAt ?? beat.at} frame={frame} transition={{ style: 'fade' }} style={{ marginTop: 20, color: green, fontSize: 22 }}>✓ Updated</ElementReveal>}
     </div>}
     <div style={{ position: 'absolute', left: L.left, top: 1115, color: C.muted, fontSize: 18, letterSpacing: .6 }}>Illustrated interface</div>
@@ -150,14 +152,18 @@ export const BookVisual: React.FC<Props<'media'>> = ({ visual, shot, frame }) =>
   const image = visual.images[0];
   const entered = progress(frame, image.at, 54), turned = progress(frame, image.at + 70, 84), settled = progress(frame, image.at + 170, 70);
   const angle = -15 + entered * 8 + turned * 12 - settled * 8;
-  return <div data-journal="book-object" style={{ position: 'absolute', left: L.left + 140, top: 475, width: 620, perspective: 1700, opacity: entered }}>
+  return <div data-journal="book-object" style={{ position: 'absolute', left: L.left + 140, top: 475, width: 620, opacity: entered }}>
     <div style={{ position: 'absolute', left: 40, right: -10, top: 880, height: 60, borderRadius: '50%', background: C.ink, filter: 'blur(30px)', opacity: .15 }} />
-    <div style={{ position: 'relative', transformStyle: 'preserve-3d', transform: `translateY(${(1 - entered) * 60}px) rotateY(${angle}deg) rotateZ(${-3 + settled * 2}deg)`, filter: `drop-shadow(15px 24px 22px ${C.ink}30)` }}>
-      <div style={{ position: 'absolute', left: -21, top: 4, bottom: 4, width: 24, background: 'linear-gradient(90deg,#203731,#456156 65%,#1a3029)', transformOrigin: 'right center', transform: 'rotateY(-30deg)', borderRadius: '5px 0 0 5px' }} />
-      <div style={{ position: 'absolute', right: -13, top: 7, bottom: -3, width: 17, background: 'repeating-linear-gradient(0deg,#f6f2e8 0px,#f6f2e8 2px,#d9d3c5 2px,#d9d3c5 3px)', borderRadius: '0 4px 4px 0' }} />
-      <Img src={staticFile(image.src)} style={{ position: 'relative', display: 'block', width: '100%', height: 'auto', borderRadius: '3px 6px 6px 3px', boxShadow: 'inset 4px 0 7px #0005' }} />
-      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 22, background: 'linear-gradient(90deg,#0005,transparent)' }} />
-      <div style={{ position: 'absolute', inset: 0, borderRadius: 5, border: '1px solid #ffffff40', background: `linear-gradient(${110 + angle}deg, transparent 25%, #ffffff0e 48%, transparent 64%)` }} />
+    <div style={{ position: 'relative', width: 620, height: 930, filter: `drop-shadow(15px 24px 22px ${C.ink}30)` }}>
+      <DepthStage perspective={1700} origin="50% 45%" style={{ width: 620, height: 930 }}>
+        <DepthLayer y={(1 - entered) * 60} z={entered * 18} rotateY={angle} rotateZ={-3 + settled * 2} style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', left: -21, top: 4, bottom: 4, width: 24, background: 'linear-gradient(90deg,#203731,#456156 65%,#1a3029)', transformOrigin: 'right center', transform: 'rotateY(-30deg)', borderRadius: '5px 0 0 5px' }} />
+          <div style={{ position: 'absolute', right: -13, top: 7, bottom: -3, width: 17, background: 'repeating-linear-gradient(0deg,#f6f2e8 0px,#f6f2e8 2px,#d9d3c5 2px,#d9d3c5 3px)', borderRadius: '0 4px 4px 0', transform: 'rotateY(38deg) translateZ(-6px)', transformOrigin: 'left center' }} />
+          <Img src={staticFile(image.src)} style={{ position: 'relative', display: 'block', width: '100%', height: 'auto', borderRadius: '3px 6px 6px 3px', boxShadow: 'inset 4px 0 7px #0005', transform: 'translateZ(10px)', backfaceVisibility: 'hidden' }} />
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 22, background: 'linear-gradient(90deg,#0005,transparent)', transform: 'translateZ(11px)' }} />
+          <div style={{ position: 'absolute', inset: 0, borderRadius: 5, border: '1px solid #ffffff40', background: `linear-gradient(${110 + angle}deg, transparent 25%, #ffffff0e 48%, transparent 64%)`, transform: 'translateZ(12px)' }} />
+        </DepthLayer>
+      </DepthStage>
     </div>
     {image.label && <ElementReveal at={Math.max(image.at, shot.from) + 18} frame={frame} transition={{ style: 'fade' }} style={{ position: 'absolute', left: -70, top: -34, padding: '10px 18px', borderRadius: 8, background: C.paper, color: C.ink, fontSize: 24, fontWeight: 600, boxShadow: `0 5px 12px ${C.ink}12` }}>{image.label}</ElementReveal>}
   </div>;
