@@ -43,7 +43,7 @@ JOURNAL_FEISHU_CHAT_ID=oc_your_journal_group_id
 npm run publish:feishu -- --list-chats
 ```
 
-本地检查（不联网、不发送；遵循当前验证授权）：
+本地交付检查（常规制作步骤，不联网、不发送）：
 
 ```sh
 npm run publish:feishu -- --out output/ep10 --check

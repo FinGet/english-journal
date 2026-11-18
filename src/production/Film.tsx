@@ -1,16 +1,18 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { AbsoluteFill, Audio, cancelRender, continueRender, delayRender, Easing, Img, interpolate, interpolateColors, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Audio, cancelRender, continueRender, delayRender, Img, interpolate, interpolateColors, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from 'remotion';
 import brand from '../../brand.config.json';
 import project from '../../project.config.json';
 import type { Brand, Caption, ProductionProps, Shot, Visual } from './types';
 import { actionState, OUTRO_SOUND_CUES } from './outro-motion.mjs';
+import { Plate, progress } from './visual-motion';
+import { EmotionFrame, EmotionVisual, MapVisual, RelationshipVisual, SceneVisual, TransformationVisual } from './NarrativeVisuals';
+import { BrowserVisual, GroupChatVisual, BookVisual } from './DeviceVisuals';
+import { SpaceflightVisual } from './SpaceflightVisual';
 
 const B: Brand = brand;
 const C = B.palette;
 const L = project.layout;
 const TEXT_WIDTH = project.video.width - L.left - L.right;
-const ease = Easing.bezier(.22, 1, .36, 1);
-const progress = (f: number, start: number, duration = 18) => ease(Math.max(0, Math.min(1, (f - start) / duration)));
 // Art uses the whole canvas. Caption placement never defines its bottom edge.
 const box = { hero: { left: L.left, top: 470, width: TEXT_WIDTH, height: 1230, radius: 12 }, side: { left: 490, top: 1000, width: 440, height: 760, radius: 12 }, chip: { left: L.left, top: 1210, width: 320, height: 320, radius: 160 } };
 
@@ -23,10 +25,10 @@ export const JournalFonts: React.FC = () => {
   return <style>{`@font-face {font-family:'Journal Sans';src:url('${staticFile('fonts/outfit-latin.woff2')}') format('woff2');font-weight:100 900;font-style:normal;font-display:block;}`}</style>;
 };
 
-const BrandLockup: React.FC<{ episode?: number }> = ({ episode }) => <div data-journal="brand" style={{ position: 'absolute', left: L.left, right: L.right, top: L.brandTop, display: 'flex', alignItems: 'center', gap: 20, color: C.ink }}>
+const BrandLockup: React.FC<{ episode?: number; light?: number }> = ({ episode, light = 0 }) => <div data-journal="brand" style={{ position: 'absolute', left: L.left, right: L.right, top: L.brandTop, display: 'flex', alignItems: 'center', gap: 20, color: interpolateColors(light, [0, 1], [C.ink, C.paper]) }}>
   <div style={{ width: 53, height: 53, borderRadius: '50%', background: C.accent, color: C.paper, display: 'grid', placeItems: 'center', fontSize: 32, lineHeight: 1, fontWeight: 600, letterSpacing: -.8 }}>{B.mark}</div>
-  <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 32, fontWeight: 600, lineHeight: 1.25 }}>{B.name}</div><div data-journal="slogan" style={{ marginTop: 8, fontSize: 26, lineHeight: 1.3, fontWeight: 400, color: C.muted }}>{B.slogan}</div></div>
-  {episode !== undefined && <div style={{ alignSelf: 'flex-start', marginTop: 9, fontSize: 24, color: C.muted }}>EP.{String(episode).padStart(2, '0')}</div>}
+  <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 32, fontWeight: 600, lineHeight: 1.25 }}>{B.name}</div><div data-journal="slogan" style={{ marginTop: 8, fontSize: 26, lineHeight: 1.3, fontWeight: 400, color: interpolateColors(light, [0, 1], [C.muted, '#bfccd9']) }}>{B.slogan}</div></div>
+  {episode !== undefined && <div style={{ alignSelf: 'flex-start', marginTop: 9, fontSize: 24, color: interpolateColors(light, [0, 1], [C.muted, '#bfccd9']) }}>EP.{String(episode).padStart(2, '0')}</div>}
 </div>;
 
 const RisingText: React.FC<{ text: string; frame: number; at: number; size?: number; color?: string }> = ({ text, frame, at, size = 70, color = C.ink }) => <span style={{ fontSize: size, lineHeight: 1.08, fontWeight: 600, letterSpacing: -1.7, color }}>
@@ -38,12 +40,7 @@ const RisingText: React.FC<{ text: string; frame: number; at: number; size?: num
 
 const Headlines: React.FC<{ shot: Shot; frame: number }> = ({ shot, frame }) => {
   const title = shot.titles.filter(t => frame >= t.at - 6 && frame < (t.until ?? shot.to)).at(-1);
-  return title ? <div data-journal="title" style={{ position: 'absolute', left: L.left, width: TEXT_WIDTH, top: 272, minHeight: 160 }}><RisingText text={title.text} frame={frame} at={title.at} /></div> : null;
-};
-
-const Plate: React.FC<{ at: number; frame: number; children: React.ReactNode; style?: React.CSSProperties }> = ({ at, frame, children, style }) => {
-  const p = progress(frame, at, 20);
-  return <div style={{ opacity: p, transform: `translateY(${(1 - p) * 25}px) scale(${.97 + p * .03})`, ...style }}>{children}</div>;
+  return title ? <div data-journal="title" style={{ position: 'absolute', left: L.left, width: TEXT_WIDTH, top: 272, minHeight: 160 }}><RisingText text={title.text} frame={frame} at={title.at} color={shot.visual.kind === 'spaceflight' ? C.paper : C.ink} /></div> : null;
 };
 
 const MediaVisual: React.FC<{ visual: Extract<Visual, { kind: 'media' }>; shot: Shot; frame: number }> = ({ visual, shot, frame }) => <>
@@ -114,7 +111,7 @@ const CaptionBlock: React.FC<{ caption: Caption }> = ({ caption }) => {
     }).catch(cancelRender);
     return () => { active = false; continueRender(handle); };
   }, [caption.english, caption.chinese, handle]);
-  return <div ref={ref} data-journal="captions" style={{ position: 'absolute', left: L.left, width: TEXT_WIDTH, top: L.captionTop, zIndex: 1000, textAlign: 'center', color: '#000' }}>
+  return <div ref={ref} data-journal="captions" style={{ position: 'absolute', left: L.left, width: TEXT_WIDTH, top: L.captionTop, zIndex: 1000, textAlign: 'center', color: L.captionColor, WebkitTextStroke: `${L.captionStrokeWidth}px ${L.captionStrokeColor}`, paintOrder: 'stroke fill', textShadow: '0 2px 3px #0006' }}>
     <div data-language="en" style={{ fontSize: L.englishSize, fontWeight: 600, lineHeight: 1.16, textWrap: 'balance' }}>{caption.english}</div>
     <div data-language="zh" style={{ fontSize: L.chineseSize, fontWeight: 400, lineHeight: 1.3, marginTop: 12, textWrap: 'balance' }}>{caption.chinese}</div>
   </div>;
@@ -130,15 +127,114 @@ const ComparisonVisual: React.FC<{ visual: Extract<Visual, { kind: 'comparison' 
   </div>
 </div>;
 
+const EvidenceVisual: React.FC<{ visual: Extract<Visual, { kind: 'evidence' }>; shot: Shot; frame: number }> = ({ visual, shot, frame }) => {
+  const index = visual.focuses.filter(focus => frame >= focus.at).length - 1;
+  const focus = visual.focuses[index];
+  const previous = visual.focuses[index - 1]?.region ?? { x: 0, y: 0, width: 1, height: 1 };
+  const p = focus ? progress(frame, focus.at, 24) : 0;
+  const target = focus?.region ?? previous;
+  const region = {
+    x: previous.x + (target.x - previous.x) * p, y: previous.y + (target.y - previous.y) * p,
+    width: previous.width + (target.width - previous.width) * p, height: previous.height + (target.height - previous.height) * p,
+  };
+  const { width, height } = visual.imageSize;
+  const overviewScale = Math.min(TEXT_WIDTH / width, 560 / height);
+  const detailWidth = TEXT_WIDTH - 380, detailHeight = 490;
+  const zoom = .9 * Math.min(detailWidth / (region.width * width), detailHeight / (region.height * height));
+  return <div data-journal="evidence" style={{ position: 'absolute', left: L.left, top: 480, width: TEXT_WIDTH }}>
+    <Plate at={shot.from} frame={frame} style={{ width: TEXT_WIDTH, height: 560, background: C.paper, border: `1px solid ${C.line}`, borderRadius: 18, overflow: 'hidden', boxSizing: 'border-box' }}>
+      <div style={{ position: 'absolute', left: (TEXT_WIDTH - width * overviewScale) / 2, top: (560 - height * overviewScale) / 2, width: width * overviewScale, height: height * overviewScale }}>
+        <Img src={staticFile(visual.image)} onLoad={event => {
+          if (event.currentTarget.naturalWidth !== width || event.currentTarget.naturalHeight !== height) cancelRender(new Error(`Evidence imageSize differs from the loaded image: ${visual.image}`));
+        }} style={{ width: '100%', height: '100%' }} />
+        {focus && <svg viewBox={`0 0 ${width} ${height}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
+          <rect x={region.x * width} y={region.y * height} width={region.width * width} height={region.height * height} fill={`${C.accent}16`} stroke={C.accent} strokeWidth={3} vectorEffect="non-scaling-stroke" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - progress(frame, focus.at, 18)} />
+        </svg>}
+      </div>
+    </Plate>
+    <Plate at={shot.from} frame={frame} style={{ position: 'absolute', top: 580, width: TEXT_WIDTH, color: C.muted, fontSize: 24 }}>{visual.sourceLabel}</Plate>
+    {focus && <>
+      <Plate key={focus.at} at={focus.at} frame={frame} style={{ position: 'absolute', left: 380, top: 650, width: detailWidth, fontSize: 32, lineHeight: 1.2, fontWeight: 600, color: C.accent, overflowWrap: 'anywhere' }}>{focus.label}</Plate>
+      <Plate at={visual.focuses[0].at} frame={frame} style={{ position: 'absolute', left: 380, top: 780, width: detailWidth, height: detailHeight, border: `1px solid ${C.line}`, borderRadius: 18, overflow: 'hidden', background: C.paper, boxShadow: `0 18px 38px ${C.ink}12` }}>
+        <Img src={staticFile(visual.image)} style={{ position: 'absolute', width: width * zoom, height: height * zoom, maxWidth: 'none', left: detailWidth / 2 - (region.x + region.width / 2) * width * zoom, top: detailHeight / 2 - (region.y + region.height / 2) * height * zoom }} />
+      </Plate>
+    </>}
+  </div>;
+};
+
+const DialogueVisual: React.FC<{ visual: Extract<Visual, { kind: 'dialogue' }>; frame: number }> = ({ visual, frame }) => {
+  const row = 230;
+  const scroll = visual.messages.slice(3).reduce((offset, message) => offset + row * progress(frame, message.at, 20), 0);
+  return <div data-journal="dialogue" style={{ position: 'absolute', left: L.left, top: 480, width: TEXT_WIDTH, height: 670, overflow: 'hidden' }}>
+    {visual.messages.map((message, i) => {
+      const next = visual.messages[i + 1];
+      const active = progress(frame, message.at, 14) * (1 - (next ? progress(frame, next.at, 16) : 0));
+      return <div key={i} style={{ position: 'absolute', left: message.side === 'left' ? 0 : 180, top: i * row - scroll, width: TEXT_WIDTH - 180 }}>
+        <Plate at={message.at} frame={frame} style={{ height: 210, padding: '20px 24px', boxSizing: 'border-box', border: `1px solid ${interpolateColors(active, [0, 1], [C.line, C.accent])}`, borderRadius: message.side === 'left' ? '20px 20px 20px 4px' : '20px 20px 4px 20px', background: message.side === 'left' ? C.paper : interpolateColors(.07, [0, 1], [C.paper, C.ink]) }}>
+          <div style={{ opacity: .55 + active * .45 }}>
+            <div style={{ marginBottom: 8, color: C.muted, fontSize: 24, lineHeight: 1.1 }}>{visual[message.side]}</div>
+            <div style={{ fontSize: 32, fontWeight: 500, lineHeight: 1.25, overflowWrap: 'anywhere' }}>{message.text}</div>
+          </div>
+        </Plate>
+      </div>;
+    })}
+  </div>;
+};
+
+const TimelineVisual: React.FC<{ visual: Extract<Visual, { kind: 'timeline' }>; frame: number }> = ({ visual, frame }) => {
+  const spacing = (TEXT_WIDTH - 100) / (visual.events.length - 1);
+  return <div data-journal="timeline" style={{ position: 'absolute', left: L.left, top: 480, width: TEXT_WIDTH }}>
+    <div style={{ color: C.muted, fontSize: 25, letterSpacing: 2, textTransform: 'uppercase' }}>{visual.label}</div>
+    <svg width={TEXT_WIDTH} height={160} style={{ position: 'absolute', top: 60, left: 0, overflow: 'visible' }}>
+      <path d={`M50 40H${TEXT_WIDTH - 50}`} stroke={C.line} strokeWidth={2} fill="none" />
+      {visual.events.map((event, i) => {
+        const p = progress(frame, event.at, 20);
+        return <React.Fragment key={i}>
+          {i > 0 && <path d={`M${50 + (i - 1) * spacing} 40h${spacing}`} stroke={C.accent} strokeWidth={3} fill="none" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - p} />}
+          <circle cx={50 + i * spacing} cy={40} r={9 + 5 * p} fill={interpolateColors(p, [0, 1], [C.background, C.accent])} stroke={interpolateColors(p, [0, 1], [C.line, C.accent])} strokeWidth={2} />
+        </React.Fragment>;
+      })}
+    </svg>
+    {visual.events.map((event, i) => {
+      const next = visual.events[i + 1];
+      const entered = progress(frame, event.at, 20);
+      const leaving = next ? progress(frame, next.at, 20) : 0;
+      const labelWidth = Math.min(180, spacing);
+      const labelLeft = Math.max(0, Math.min(TEXT_WIDTH - labelWidth, 50 + i * spacing - labelWidth / 2));
+      return <React.Fragment key={i}>
+        <div style={{ position: 'absolute', top: 138, left: labelLeft, width: labelWidth, opacity: entered, textAlign: 'center', color: leaving > .5 ? C.muted : C.accent, fontSize: 25, lineHeight: 1.2, overflowWrap: 'anywhere' }}>{event.when}</div>
+        {frame >= event.at && (!next || frame < next.at + 20) && <div style={{ position: 'absolute', left: 0, top: 280, width: TEXT_WIDTH, height: 410, boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 32, padding: 32, borderRadius: 18, border: `1px solid ${C.line}`, background: C.paper, opacity: entered * (1 - leaving), transform: `translateY(${(1 - entered) * 20 - leaving * 20}px)` }}>
+          {event.image && <Img src={staticFile(event.image)} style={{ width: 300, height: 346, objectFit: 'cover', borderRadius: 10, flexShrink: 0 }} />}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: C.accent, fontSize: 24, marginBottom: 22 }}>{event.when}</div>
+            <div style={{ fontSize: event.image ? 44 : 56, lineHeight: 1.15, fontWeight: 600, letterSpacing: -1, overflowWrap: 'anywhere' }}>{event.text}</div>
+          </div>
+        </div>}
+      </React.Fragment>;
+    })}
+  </div>;
+};
+
 const ShotArt: React.FC<{ shot: Shot; frame: number }> = ({ shot, frame }) => {
   const v = shot.visual;
   return <>
+    {v.kind === 'spaceflight' && <SpaceflightVisual visual={v} shot={shot} frame={frame} />}
     <Headlines shot={shot} frame={frame} />
-    {v.kind === 'media' && <MediaVisual visual={v} shot={shot} frame={frame} />}
+    {v.kind === 'media' && (v.treatment === 'book' ? <BookVisual visual={v} shot={shot} frame={frame} /> : <MediaVisual visual={v} shot={shot} frame={frame} />)}
+    {v.kind === 'browser' && <BrowserVisual visual={v} shot={shot} frame={frame} />}
+    {v.kind === 'group-chat' && <GroupChatVisual visual={v} shot={shot} frame={frame} />}
     {v.kind === 'flow' && <FlowVisual visual={v} frame={frame} />}
     {v.kind === 'contrast' && <ContrastVisual visual={v} frame={frame} />}
     {v.kind === 'sequence' && <SequenceVisual visual={v} frame={frame} />}
     {v.kind === 'comparison' && <ComparisonVisual visual={v} frame={frame} shot={shot} />}
+    {v.kind === 'evidence' && <EvidenceVisual visual={v} frame={frame} shot={shot} />}
+    {v.kind === 'dialogue' && <DialogueVisual visual={v} frame={frame} />}
+    {v.kind === 'timeline' && <TimelineVisual visual={v} frame={frame} />}
+    {v.kind === 'scene' && <SceneVisual visual={v} frame={frame} />}
+    {v.kind === 'transformation' && <TransformationVisual visual={v} frame={frame} />}
+    {v.kind === 'relationship' && <RelationshipVisual visual={v} frame={frame} />}
+    {v.kind === 'map' && <MapVisual visual={v} frame={frame} />}
+    {v.kind === 'emotion' && <EmotionVisual visual={v} frame={frame} />}
     {v.kind === 'closing' && <>
       <Plate at={v.at - 5} frame={frame} style={{ position: 'absolute', left: L.left, top: 395, maxWidth: TEXT_WIDTH, fontSize: 29, color: C.muted }}>{v.prompt}</Plate>
     </>}
@@ -202,17 +298,20 @@ export const JournalFilm: React.FC<ProductionProps> = ({ production: p, debugOve
   const shot = p.shots[Math.max(0, index)];
   const previous = p.shots[Math.max(0, index - 1)];
   const transition = index > 0 ? progress(f, shot.from, 18) : 1;
+  const immersion = (shot.visual.kind === 'spaceflight' ? transition : 0) + (index > 0 && previous.visual.kind === 'spaceflight' ? 1 - transition : 0);
   const oldRect = box[previous.portrait], nextRect = box[shot.portrait];
   const rect = Object.fromEntries(Object.entries(nextRect).map(([key, value]) => [key, oldRect[key as keyof typeof oldRect] + (value - oldRect[key as keyof typeof oldRect]) * transition])) as typeof nextRect;
   const caption = p.captions.find(c => f >= c.from && f < c.to);
   return <AbsoluteFill style={{ background: C.background, color: C.ink, fontFamily: B.font, overflow: 'hidden' }}>
     <JournalFonts />
     <div style={{ position: 'absolute', right: -180, top: 580, width: 650, height: 650, borderRadius: '50%', background: `radial-gradient(circle, ${C.ink}0c 0%, transparent 68%)` }} />
-    <BrandLockup episode={p.episode} />
-    {index > 0 && transition < 1 && <AbsoluteFill style={{ opacity: 1 - transition, transform: `translateY(${-transition * 20}px)` }}><ShotArt shot={previous} frame={f} /></AbsoluteFill>}
-    <AbsoluteFill style={{ opacity: transition, transform: `translateY(${(1 - transition) * 20}px)` }}><ShotArt shot={shot} frame={f} /></AbsoluteFill>
-    <div data-journal="portrait" style={{ position: 'absolute', left: rect.left, top: rect.top, width: rect.width, height: rect.height, borderRadius: rect.radius, overflow: 'hidden', outline: `1px solid ${C.line}`, outlineOffset: 10, zIndex: 4 }}>
+    {index > 0 && transition < 1 && <AbsoluteFill style={{ opacity: 1 - transition, transform: previous.visual.kind === 'spaceflight' ? undefined : `translateY(${-transition * 20}px)` }}><ShotArt shot={previous} frame={f} /></AbsoluteFill>}
+    <AbsoluteFill style={{ opacity: transition, transform: shot.visual.kind === 'spaceflight' ? undefined : `translateY(${(1 - transition) * 20}px)` }}><ShotArt shot={shot} frame={f} /></AbsoluteFill>
+    <BrandLockup episode={p.episode} light={immersion} />
+    <div data-journal="portrait" style={{ position: 'absolute', left: rect.left, top: rect.top, width: rect.width, height: rect.height, borderRadius: rect.radius, overflow: 'hidden', outline: `1px solid ${C.line}`, outlineOffset: 10, zIndex: 4, opacity: 1 - immersion }}>
       <OffthreadVideo src={staticFile(p.media.program)} muted={Boolean(p.media.audio)} volume={p.media.volume ?? project.audio.voiceVolume} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: p.media.position }} />
+      {previous.visual.kind === 'emotion' && index > 0 && transition < 1 && <div style={{ position: 'absolute', inset: 0, opacity: 1 - transition }}><EmotionFrame visual={previous.visual} frame={f} /></div>}
+      {shot.visual.kind === 'emotion' && <div style={{ position: 'absolute', inset: 0, opacity: transition }}><EmotionFrame visual={shot.visual} frame={f} /></div>}
     </div>
     {p.media.audio && <Audio src={staticFile(p.media.audio)} volume={p.media.volume ?? project.audio.voiceVolume} />}
     {p.cues.map((cue, i) => <Sequence key={i} from={cue.at} durationInFrames={cue.duration}><Audio src={staticFile(cue.src)} volume={cue.volume} /></Sequence>)}

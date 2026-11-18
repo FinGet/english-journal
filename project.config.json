@@ -16,7 +16,13 @@
     "brandTop": 150,
     "captionTop": 1500,
     "englishSize": 52,
-    "chineseSize": 34
+    "chineseSize": 34,
+    "captionColor": "#ffffff",
+    "captionStrokeColor": "#080b0a",
+    "captionStrokeWidth": 6
+  },
+  "pacing": {
+    "maxUnillustratedSeconds": 4
   },
   "audio": {
     "voiceVolume": 1,

@@ -76,7 +76,11 @@ test('a cover uses a real program frame and requires its own approval', () => {
   p.cover.status = 'approved';
   assert.throws(() => validateProduction(p, { final: true, cover: true }), /cutout/);
   p.cover.portrait = 'ep87/journal/cover/portrait.png';
+  p.cover.portraitBottom = -220;
   assert.doesNotThrow(() => validateProduction(p, { final: true, cover: true }));
+  p.cover.portraitBottom = -1000;
+  assert.throws(() => validateProduction(p), /portrait bottom/);
+  p.cover.portraitBottom = -220;
   assert(productionAssets(p).includes(p.cover.portrait));
   p.cover.portrait = '../portrait.png';
   assert.throws(() => validateProduction(p), /Unsafe asset/);
@@ -108,6 +112,85 @@ test('one brand contract enforces English graphics and complete color tokens', (
   assert.doesNotThrow(() => validateBrand(brand));
   assert.equal(compositionFrames(base(), brand), 150, 'Shared outro appends 90 frames without changing the source/word clock');
   brand.series = '中文'; assert.throws(() => validateBrand(brand), /English/);
+});
+
+test('evidence keeps real local assets and rejects unsafe or out-of-image focus regions', () => {
+  const p = base();
+  p.shots[0].portrait = 'chip';
+  const evidence = () => ({ kind: 'evidence', image: 'ep87/journal/output.png', imageSize: { width: 1440, height: 900 }, sourceLabel: 'My session',
+    focuses: [{ at: 10, label: 'The timing', region: { x: .1, y: .2, width: .4, height: .3 } }, { at: 35, label: 'The detail', region: { x: .6, y: .5, width: .4, height: .5 } }] });
+  p.shots[0].visual = evidence();
+  assert.doesNotThrow(() => validateProduction(p));
+  assert(productionAssets(p).includes('ep87/journal/output.png'));
+  for (const mutate of [
+    v => { v.image = 'https://example.com/output.png'; },
+    v => { v.image = '../output.png'; },
+    v => { v.imageSize.width = 0; },
+    v => { delete v.imageSize; },
+    v => { v.focuses[0].region.x = -.1; },
+    v => { v.focuses[0].region.width = .95; },
+    v => { v.focuses[0].region.height = .01; },
+    v => { v.focuses[0].region.y = Number.NaN; },
+    v => { v.focuses[1].at = 10; },
+    v => { v.focuses[1].at = 60; },
+    v => { v.focuses = []; },
+  ]) {
+    p.shots[0].visual = evidence(); mutate(p.shots[0].visual);
+    assert.throws(() => validateProduction(p));
+  }
+});
+
+test('dialogue supports consecutive replies and bounds speakers, message size and ordering', () => {
+  const p = base();
+  p.shots[0].portrait = 'chip';
+  const dialogue = () => ({ kind: 'dialogue', left: 'My colleague', right: 'Me', messages: [
+    { at: 5, side: 'left', text: 'Can we talk later?' }, { at: 20, side: 'right', text: 'Is anything wrong?' },
+    { at: 30, side: 'right', text: 'I can wait.' }, { at: 45, side: 'left', text: 'I just need a moment.' },
+  ] });
+  p.shots[0].visual = dialogue();
+  assert.doesNotThrow(() => validateProduction(p));
+  for (const mutate of [
+    v => { v.left = ''; },
+    v => { v.right = '中文标签'; },
+    v => { v.messages[1].side = 'middle'; },
+    v => { v.messages[1].at = 5; },
+    v => { v.messages[1].text = 'x'.repeat(57); },
+    v => { v.messages = v.messages.slice(0, 1); },
+    v => { v.messages = Array.from({ length: 7 }, (_, i) => ({ at: i * 5, side: 'left', text: 'Hello.' })); },
+  ]) {
+    p.shots[0].visual = dialogue(); mutate(p.shots[0].visual);
+    assert.throws(() => validateProduction(p));
+  }
+});
+
+test('timeline collects optional photos once and new story visuals stay inside their shot with a chip portrait', () => {
+  const p = base();
+  const image = 'ep87/journal/station.jpg';
+  const timeline = { kind: 'timeline', label: 'A change of plans', events: [
+    { at: 25, when: 'Morning', text: 'The train was cancelled.', image },
+    { at: 40, when: 'Later', text: 'We found another route.', image },
+  ] };
+  p.shots = [{ ...p.shots[0], to: 20 }, { ...p.shots[0], id: 'story', from: 20, to: 60, titles: [], portrait: 'chip', visual: timeline }];
+  assert.doesNotThrow(() => validateProduction(p));
+  assert.equal(productionAssets(p).filter(src => src === image).length, 1);
+  timeline.events[0].image = '../station.jpg';
+  assert.throws(() => validateProduction(p), /Unsafe asset/);
+  delete timeline.events[0].image;
+  delete timeline.events[1].image;
+  assert.doesNotThrow(() => validateProduction(p));
+  for (const visual of [
+    timeline,
+    { kind: 'dialogue', left: 'Me', right: 'A friend', messages: [{ at: 25, side: 'left', text: 'Hi.' }, { at: 40, side: 'right', text: 'Hello.' }] },
+    { kind: 'evidence', image, imageSize: { width: 1600, height: 1200 }, sourceLabel: 'My photo', focuses: [{ at: 25, label: 'The sign', region: { x: .5, y: .1, width: .2, height: .3 } }] },
+  ]) {
+    const shot = p.shots[1]; shot.visual = structuredClone(visual); shot.portrait = 'chip';
+    assert.doesNotThrow(() => validateProduction(p));
+    shot.portrait = 'hero'; assert.throws(() => validateProduction(p), /chip portrait/);
+    shot.portrait = 'chip';
+    const beats = shot.visual.events ?? shot.visual.messages ?? shot.visual.focuses;
+    beats[0].at = 15;
+    assert.throws(() => validateProduction(p), /outside shot/);
+  }
 });
 
 test('real media import, take identity, alternate episode routing and non-destructive rerun', t => {

@@ -4,7 +4,7 @@
 
 ## 当前工作方式
 
-用户当前自行在浏览器验收，agent只修改，不运行测试、构建、抽帧、审片、音频测量或渲染。下文命令是正式制作入口，本次整理没有执行。历史视频、字幕和模型缓存保留。
+用户要求制作一期，agent主动从完整口播判断并实现对象、环境和动作细节，用户无需逐期提供画面清单；判断方法见[视觉导演标准](docs/visual-direction.md)。agent默认完成前期音频、字幕、分镜、配图、封面、必要技术检查、预览/连续审查和本地导出。降噪、原声静音检测及口播响度处理是所有期数的必要流程，不按期数列例外，不逐项询问是否恢复。只有用户本次明确缩小范围时才调整；对外发送另按用户要求执行。历史“未执行”记录不构成当前禁令。
 
 当前期数和制作版本以episode.config.json为准，制作状态以对应motion.json为准。试看片段可设置outro:false，正式整片默认追加品牌片尾；不能把某次试片状态当成整个项目的固定状态。
 
@@ -14,7 +14,7 @@ npm run dev
 
 浏览器正式入口只有 `EnglishJournal`（整片）、`JournalCover`（独立3:4封面）、`JournalOutro`（通用有声片尾）。旧EP06/EP10实验和旧视觉组件已移出源码，恢复材料见 `output/_work/project-cleanup-20261117/legacy-code.tar.gz`。
 
-封面使用1080×1440的独立构图，默认scale=1；中文主题、可选英文副题、真实人物帧来源及透明PNG抠图在motion.json的cover字段配置。纸纹、网格、大标题与人物剪贴形成固定系列风格，账号下保留完整slogan。用户看过并确认后才导出。
+封面使用1080×1440的独立构图，默认scale=1；中文主题、可选英文副题、真实人物帧来源及透明PNG抠图在motion.json的cover字段配置。纸纹、网格、大标题与人物剪贴形成固定系列风格，账号下保留完整slogan。完成身份、主题与布局审查后导出，状态如实记录。
 
 ## 制作流程
 
@@ -22,12 +22,12 @@ npm run dev
 
 1. 保留原片及其身份，建立本期独立工作目录。
 2. 生成未剪辑的降噪识别副本，对它转写；原片不覆盖。
-3. 核对原话，依据未降噪原声提出静音预剪；先报告，后应用。
+3. 核对原话，依据未降噪原声生成静音预剪报告，审查后应用符合保守规则的安全区间。
 4. 用同一剪辑清单生成program与成片词表，重新组织中英双语字幕。
 5. 对剪后的原声生成降噪副本，单独处理口播响度；保留原声与处理记录。
-6. 导入新edition，写语义分镜和来源；提到具体事件、地点、场景、人物或战队时主动考虑真实配图，核对对象与事件后选材，按本期内容选择公共组件。
-7. 用户在网页检查字幕、构图、动效和声音，确认后更新制作状态。
-8. 提炼20字符以内的中文标题和一小段文案，生成post.md。经用户允许再导出；最终文件检查通过后才替换成品。用户要求发送时，再单独发送飞书journal群。
+6. 导入新edition，主动设计并实现对象、环境、操作和质感细节，保证结构、动作与空间关系可信；写语义分镜和来源；提到具体事件、地点、场景、人物或战队时主动考虑真实配图，核对对象与事件后选材，按本期内容选择公共组件。
+7. 在网页检查字幕、构图、连续动效和声音，完成关键场景的细节与真实感审查；按手机观看尺寸检查并修复粗糙或违和处，记录复查结果，结合用户校准结果如实更新质量状态。
+8. 提炼20字符以内的中文标题和一小段文案，生成post.md。完成必要检查和审查后直接本地导出，最终文件检查通过后才替换成品。用户要求发送时，再单独发送飞书journal群。
 
 ## 配置
 
@@ -39,6 +39,8 @@ npm run dev
 | `public/epXX/<edition>/motion.json` | 原片/成片身份、剪辑映射、词表、双语字幕、分镜、音效、口播固定增益和审查状态 |
 
 每期最终交付video.mp4、cover.png和post.md。发布文案保存在motion.json的publication字段，格式与飞书使用见[发布交付](docs/publishing.md)。
+
+画面组件与配置示例见[语义画面组件](docs/visual-components.md)。新增evidence（证据聚焦）、dialogue（对话往返）、timeline（经历时间线）、scene（场景动作）、transformation（状态重组）、relationship（影响/阻碍/反馈）、map（示意路线）、emotion（人物情绪转折），另有browser（电脑网页操作）、group-chat（手机群聊/改名）、spaceflight（全屏宇宙出发）和media.book（实体书）。均接入原有EnglishJournal分镜。emotion使用hero并由自身短句承担标题，其余扩展组件使用chip人物；按本期语义选用，配置后按常规制作流程完成预览和连续审查。第二批细节见[叙事组件](docs/narrative-components.md)。
 
 本仓库完整定义制作标准，不需要另一个业务项目或历史聊天作为背景。技术参数读取project.config.json，品牌读取brand.config.json，内容与时间轴读取本期motion.json；制作流程见本仓库文档，封面见[封面制作](docs/cover-workflow.md)。不引入纠错、评分、发音训练或TTS。历史来源见docs/provenance.md，仅保留归属与沿革，不是常规制作必读材料。
 
@@ -57,14 +59,14 @@ npm run setup
 npm run denoise -- --video /path/to/original.mp4 --episode 11
 npm run transcribe -- /path/to/denoised-copy.mp4 output/_work/ep11/journal/asr.json
 npm run trim -- --video /path/to/original.mp4 --words output/_work/ep11/journal/asr.json --out output/_work/ep11/journal/trim
-# 预剪报告确认后，同一命令加 --apply
+# 审查预剪报告，安全区间符合规范后由agent继续运行同一命令加 --apply
 npm run voice -- --input /path/to/denoised-program.mp4 --output output/_work/ep11/journal/voice.wav
 npm run episode:new -- --episode 11 --edition journal --video /path/to/program.mp4 --source /path/to/original.mp4 --edit /path/to/edit.json --audio /path/to/voice.wav --transcript /path/to/bilingual.json --title "Learning to Listen" --select
 npm run dev
 npm run post -- --episode 11 --edition journal
 ```
 
-用户恢复验证或明确导出后，再按需要使用：
+制作中按改动和实际阶段直接使用：
 
 ```sh
 npm run check
@@ -87,7 +89,7 @@ npm run render:2k -- --episode 11 --edition journal
 - 历史原片与清单保留在public下，但旧格式不再加载旧渲染器；需重新制作时导入一个新edition，不原地迁移。
 - Node20.19+、FFmpeg/ffprobe、可用Chrome；依赖按本仓库package-lock.json安装，不要求相邻项目或node_modules软链接。
 - Whisper使用本工程.cache/asr-models/whisper-large-v3-turbo，或--model/LOCAL_ASR_MODEL显式路径；DeepFilterNet使用本工程缓存、DEEP_FILTER_BIN或PATH。脚本不搜索其他业务项目，缺失时停止、不自动下载。Python需使用安装了mlx_whisper的环境。详见[独立环境准备](docs/environment.md)。
-- 可复用的素材保护/时间轴契约测试保留，旧期数及旧场景的实验测试已归档。测试当前没有执行。
+- 可复用的素材保护/时间轴契约测试保留，旧期数及旧场景的实验测试已归档。按实际改动运行相关检查，不能拿历史报告冒充当前通过。
 
 ## Git仓库
 

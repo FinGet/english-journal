@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, realpathSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { compositionFrames, productionAssets, validateBrand, validateProduction } from '../src/production/validate.mjs';
+import { compositionFrames, productionAssets, unillustratedHolds, validateBrand, validateProduction } from '../src/production/validate.mjs';
 
 export const sha256 = file => createHash('sha256').update(readFileSync(file)).digest('hex');
 export const probe = file => JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', file], { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 }));
@@ -26,8 +26,12 @@ export function checkProductionFile(file, { final = false, cover = false, report
   const audio = p.media.audio ? probe(resolve('public', p.media.audio)) : program;
   if (!audio.streams.some(s => s.codec_type === 'audio') || Math.abs(Number(audio.format.duration) * p.fps - p.durationInFrames) > 1) throw new Error('Voice and program clocks differ or voice is missing');
   const warnings = [];
+  const project = JSON.parse(readFileSync('project.config.json', 'utf8'));
+  const maxHold = (project.pacing?.maxUnillustratedSeconds ?? 4) * p.fps;
+  const longHolds = unillustratedHolds(p.shots, maxHold);
+  for (const hold of longHolds) warnings.push(`Unillustrated hold ${(hold.from / p.fps).toFixed(2)}–${(hold.to / p.fps).toFixed(2)}s exceeds ${maxHold / p.fps}s (${hold.shots.join(', ')}); add a meaningful visual action. Changing titles or decorative motion does not reset the hold.`);
   if (p.review.transcript !== 'confirmed' || p.review.direction !== 'ready') warnings.push('DRAFT: transcript/direction review is incomplete; final export is blocked.');
-  const result = { format: p.format, episode: p.episode, frames: p.durationInFrames, seconds: p.durationInFrames / p.fps, deliveryFrames: compositionFrames(p, brand), outroFrames: p.outro === false ? 0 : brand.outroFrames, captions: p.captions.length, shots: p.shots.length, review: p.review, assets, warnings };
+  const result = { format: p.format, episode: p.episode, frames: p.durationInFrames, seconds: p.durationInFrames / p.fps, deliveryFrames: compositionFrames(p, brand), outroFrames: p.outro === false ? 0 : brand.outroFrames, captions: p.captions.length, shots: p.shots.length, review: p.review, pacing: { maxHoldFrames: maxHold, longHolds }, assets, warnings };
   if (report) { mkdirSync(resolve(report, '..'), { recursive: true }); writeFileSync(report, JSON.stringify(result, null, 2) + '\n'); }
   console.log(`Checked Journal v2 EP${p.episode}: ${result.shots} semantic shots, ${result.captions} bilingual captions, ${result.frames} frames. ${warnings.join(' ')}`);
   return result;
