@@ -8,6 +8,8 @@ import { Plate, progress } from './visual-motion';
 import { EmotionFrame, EmotionVisual, MapVisual, RelationshipVisual, SceneVisual, TransformationVisual } from './NarrativeVisuals';
 import { BrowserVisual, GroupChatVisual, BookVisual } from './DeviceVisuals';
 import { SpaceflightVisual } from './SpaceflightVisual';
+import { SpatialShot, WorldBackdrop } from './SpatialWorld';
+import { cameraTransition } from './camera-motion.mjs';
 
 const B: Brand = brand;
 const C = B.palette;
@@ -297,21 +299,23 @@ export const JournalFilm: React.FC<ProductionProps> = ({ production: p, debugOve
   const index = p.shots.findIndex(s => f >= s.from && f < s.to);
   const shot = p.shots[Math.max(0, index)];
   const previous = p.shots[Math.max(0, index - 1)];
-  const transition = index > 0 ? progress(f, shot.from, 18) : 1;
-  const immersion = (shot.visual.kind === 'spaceflight' ? transition : 0) + (index > 0 && previous.visual.kind === 'spaceflight' ? 1 - transition : 0);
+  const transitionSpec = shot.transition ?? ({ style: 'cut' } as const);
+  const layoutTransition = index > 0 ? cameraTransition(f, shot.from) : 1;
+  const transition = transitionSpec.style === 'cut' ? 1 : layoutTransition;
+  const immersion = (shot.visual.kind === 'spaceflight' ? layoutTransition : 0) + (index > 0 && previous.visual.kind === 'spaceflight' ? 1 - layoutTransition : 0);
   const oldRect = box[previous.portrait], nextRect = box[shot.portrait];
-  const rect = Object.fromEntries(Object.entries(nextRect).map(([key, value]) => [key, oldRect[key as keyof typeof oldRect] + (value - oldRect[key as keyof typeof oldRect]) * transition])) as typeof nextRect;
+  const rect = Object.fromEntries(Object.entries(nextRect).map(([key, value]) => [key, oldRect[key as keyof typeof oldRect] + (value - oldRect[key as keyof typeof oldRect]) * layoutTransition])) as typeof nextRect;
   const caption = p.captions.find(c => f >= c.from && f < c.to);
   return <AbsoluteFill style={{ background: C.background, color: C.ink, fontFamily: B.font, overflow: 'hidden' }}>
     <JournalFonts />
-    <div style={{ position: 'absolute', right: -180, top: 580, width: 650, height: 650, borderRadius: '50%', background: `radial-gradient(circle, ${C.ink}0c 0%, transparent 68%)` }} />
-    {index > 0 && transition < 1 && <AbsoluteFill style={{ opacity: 1 - transition, transform: previous.visual.kind === 'spaceflight' ? undefined : `translateY(${-transition * 20}px)` }}><ShotArt shot={previous} frame={f} /></AbsoluteFill>}
-    <AbsoluteFill style={{ opacity: transition, transform: shot.visual.kind === 'spaceflight' ? undefined : `translateY(${(1 - transition) * 20}px)` }}><ShotArt shot={shot} frame={f} /></AbsoluteFill>
+    <WorldBackdrop transitions={p.shots.map(s => s.transition)} index={index} transition={transition} opacity={1 - immersion} />
+    {index > 0 && transition < 1 && <SpatialShot spec={transitionSpec} transition={transition} role="previous"><ShotArt shot={previous} frame={f} /></SpatialShot>}
+    <SpatialShot spec={transitionSpec} transition={transition} role="current"><ShotArt shot={shot} frame={f} /></SpatialShot>
     <BrandLockup episode={p.episode} light={immersion} />
     <div data-journal="portrait" style={{ position: 'absolute', left: rect.left, top: rect.top, width: rect.width, height: rect.height, borderRadius: rect.radius, overflow: 'hidden', outline: `1px solid ${C.line}`, outlineOffset: 10, zIndex: 4, opacity: 1 - immersion }}>
       <OffthreadVideo src={staticFile(p.media.program)} muted={Boolean(p.media.audio)} volume={p.media.volume ?? project.audio.voiceVolume} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: p.media.position }} />
-      {previous.visual.kind === 'emotion' && index > 0 && transition < 1 && <div style={{ position: 'absolute', inset: 0, opacity: 1 - transition }}><EmotionFrame visual={previous.visual} frame={f} /></div>}
-      {shot.visual.kind === 'emotion' && <div style={{ position: 'absolute', inset: 0, opacity: transition }}><EmotionFrame visual={shot.visual} frame={f} /></div>}
+      {previous.visual.kind === 'emotion' && index > 0 && layoutTransition < 1 && <div style={{ position: 'absolute', inset: 0, opacity: 1 - layoutTransition }}><EmotionFrame visual={previous.visual} frame={f} /></div>}
+      {shot.visual.kind === 'emotion' && <div style={{ position: 'absolute', inset: 0, opacity: layoutTransition }}><EmotionFrame visual={shot.visual} frame={f} /></div>}
     </div>
     {p.media.audio && <Audio src={staticFile(p.media.audio)} volume={p.media.volume ?? project.audio.voiceVolume} />}
     {p.cues.map((cue, i) => <Sequence key={i} from={cue.at} durationInFrames={cue.duration}><Audio src={staticFile(cue.src)} volume={cue.volume} /></Sequence>)}

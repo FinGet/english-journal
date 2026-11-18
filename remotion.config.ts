@@ -6,4 +6,5 @@ const chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 if (existsSync(chrome)) Config.setBrowserExecutable(chrome);
 Config.setVideoImageFormat('png');
 Config.setCrf(project.export.crf);
+Config.setDelayRenderTimeoutInMilliseconds(project.export.frameTimeoutMs);
 Config.setOverwriteOutput(true);

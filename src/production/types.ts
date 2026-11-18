@@ -1,6 +1,7 @@
 export type Caption = { from: number; to: number; english: string; chinese: string };
 export type Stamp = { from: number; to: number; text: string };
 export type TitleBeat = { at: number; until?: number; text: string };
+export type ShotTransition = { style: 'cut' | 'fade' | 'depth' } | { style: 'slide'; from: 'left' | 'right' | 'top' | 'bottom' };
 export type Visual =
   | { kind: 'speaker' }
   | { kind: 'media'; images: { src: string; at: number; label?: string }[]; treatment: 'stack' | 'push' | 'book' }
@@ -22,6 +23,7 @@ export type Visual =
   | { kind: 'closing'; prompt: string; at: number };
 export type Shot = {
   id: string; from: number; to: number;
+  transition?: ShotTransition;
   intent: string; action: string; outcome: string;
   portrait: 'hero' | 'side' | 'chip';
   titles: TitleBeat[]; visual: Visual;

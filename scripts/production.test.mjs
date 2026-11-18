@@ -12,6 +12,33 @@ import { finishDelivery } from './delivery.mjs';
 import { prepareVoice } from './audio.mjs';
 import { fileURLToPath } from 'node:url';
 import { ACTION_TIMES, OUTRO_SOUND_CUES, actionState } from '../src/production/outro-motion.mjs';
+import { cameraTransition, elementMotion, spatialCamera, worldCamera } from '../src/production/camera-motion.mjs';
+
+test('director-selected transitions stay still after their handoff', () => {
+  const slide = { style: 'slide', from: 'right' };
+  const entering = spatialCamera({ transition: 0, role: 'current', spec: slide });
+  const settled = spatialCamera({ transition: 1, role: 'current', spec: slide });
+  const old = spatialCamera({ transition: 1, role: 'previous', spec: slide });
+  const vertical = spatialCamera({ transition: 0, role: 'current', spec: { style: 'slide', from: 'bottom' } });
+  assert(entering.x > 1080 && entering.y === 0 && entering.opacity === 1);
+  assert.deepEqual(settled, { x: 0, y: 0, scale: 1, opacity: 1 }, 'A held shot is completely still');
+  assert(old.x < -1080 && old.y === 0 && old.opacity === 1, 'The previous canvas remains visible while moving out');
+  assert(vertical.y > 1920 && vertical.x === 0, 'Routes include vertical camera travel');
+  const transitions = [undefined, slide, { style: 'fade' }];
+  assert.deepEqual(worldCamera({ transitions, index: 1, transition: 1 }), worldCamera({ transitions, index: 2, transition: 0 }), 'World coordinates remain continuous across a non-spatial handoff');
+  assert.equal(spatialCamera({ transition: .5, role: 'current', spec: { style: 'fade' } }).opacity, .5);
+  assert(spatialCamera({ transition: .5, role: 'current', spec: { style: 'depth' } }).scale > 1);
+  assert.equal(cameraTransition(113, 100), .5, 'The camera reaches the midpoint halfway through a symmetric slow-fast-slow move');
+});
+
+test('element transitions express semantic state changes without continuous drift', () => {
+  assert.deepEqual(elementMotion({ transition: 0, active: true, spec: { style: 'cut' } }), { x: 0, y: 0, scale: 1, opacity: 1 });
+  assert.equal(elementMotion({ transition: .5, active: true, spec: { style: 'fade' } }).opacity, .5);
+  assert(elementMotion({ transition: .5, active: true, spec: { style: 'depth' } }).scale < 1);
+  const sliding = elementMotion({ transition: .5, active: true, spec: { style: 'slide', from: 'bottom' }, distance: 40 });
+  assert.equal(sliding.y, 20);
+  assert.deepEqual(elementMotion({ transition: 1, active: true, spec: { style: 'slide', from: 'bottom' } }), { x: 0, y: 0, scale: 1, opacity: 1 });
+});
 
 test('outro actions activate in order and follow reaches a drawn check before the final hold', () => {
   assert.deepEqual(ACTION_TIMES, [24, 40, 58]);
@@ -170,7 +197,7 @@ test('timeline collects optional photos once and new story visuals stay inside t
     { at: 25, when: 'Morning', text: 'The train was cancelled.', image },
     { at: 40, when: 'Later', text: 'We found another route.', image },
   ] };
-  p.shots = [{ ...p.shots[0], to: 20 }, { ...p.shots[0], id: 'story', from: 20, to: 60, titles: [], portrait: 'chip', visual: timeline }];
+  p.shots = [{ ...p.shots[0], to: 20 }, { ...p.shots[0], id: 'story', from: 20, to: 60, transition: { style: 'fade' }, titles: [], portrait: 'chip', visual: timeline }];
   assert.doesNotThrow(() => validateProduction(p));
   assert.equal(productionAssets(p).filter(src => src === image).length, 1);
   timeline.events[0].image = '../station.jpg';

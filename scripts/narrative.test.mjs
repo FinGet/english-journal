@@ -34,7 +34,7 @@ const production = kind => {
   const p = makeProduction({ episode: 88, title: 'A new day', prefix: 'ep88/journal', frames: 300, sourceFrames: 300,
     sourceHash: 'a'.repeat(64), programHash: 'b'.repeat(64),
     captions: [{ from: 0, to: 30, english: 'Hello.', chinese: '你好' }], words: [{ from: 0, to: 30, text: 'Hello.' }] });
-  p.shots = [{ ...p.shots[0], to: 60 }, { ...p.shots[0], id: 'story', from: 60, titles: [], portrait: kind === 'emotion' ? 'hero' : 'chip', visual: structuredClone(fixtures[kind]) }];
+  p.shots = [{ ...p.shots[0], to: 60 }, { ...p.shots[0], id: 'story', from: 60, transition: { style: 'fade' }, titles: [], portrait: kind === 'emotion' ? 'hero' : 'chip', visual: structuredClone(fixtures[kind]) }];
   return p;
 };
 

@@ -3,7 +3,7 @@ import { Img, staticFile } from 'remotion';
 import brand from '../../brand.config.json';
 import project from '../../project.config.json';
 import type { Shot, Visual } from './types';
-import { progress } from './visual-motion';
+import { ElementReveal, progress } from './visual-motion';
 
 const C = brand.palette, L = project.layout;
 const W = project.video.width - L.left - L.right;
@@ -77,10 +77,10 @@ export const BrowserVisual: React.FC<Props<'browser'>> = ({ visual, shot, frame 
               {mobile < .5 && <svg width={110 + (contentWidth > 600 ? 60 : 0)} height={160} viewBox="0 0 170 160"><ellipse cx={90} cy={139} rx={64} ry={10} fill="#b9cabe" opacity={.35} /><path d="M26 44L98 18L151 47L78 76Z" fill={styled > .4 ? '#a9c0af' : '#d3dcd5'} /><path d="M26 44V109L78 140V76Z" fill="#c8d8cc" /><path d="M78 76L151 47V110L78 140Z" fill={styled > .4 ? '#789a86' : '#bdcdc1'} /><circle cx={75} cy={35} r={24} fill={styled > .4 ? '#b86c4e' : '#d6dfd7'} /><path d="M58 119L127 93" stroke="#eff5f0" strokeWidth={2} /></svg>}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${mobile > .5 ? 1 : 3},1fr)`, gap: 12, marginTop: 18 }}>
-              {[0, 1, 2].map(i => <div key={i} style={{ opacity: progress(frame, shot.from + 10 + i * 14, 30), border: '1px solid #dde5df', borderRadius: 9, padding: 10, background: '#fff' }}><div style={{ height: mobile > .5 ? 18 : 33, borderRadius: 4, background: ['#c8d9cd', '#e1cabb', '#c8d7d8'][i], marginBottom: 9 }} /><div style={{ height: 5, width: '70%', background: '#bccbc0', borderRadius: 3 }} /><div style={{ height: 4, width: '90%', background: '#e0e7e1', borderRadius: 3, marginTop: 6 }} /></div>)}
+              {[0, 1, 2].map(i => <ElementReveal key={i} at={shot.from + 10 + i * 14} frame={frame} duration={30} transition={{ style: 'slide', from: 'bottom' }} distance={18} style={{ border: '1px solid #dde5df', borderRadius: 9, padding: 10, background: '#fff' }}><div style={{ height: mobile > .5 ? 18 : 33, borderRadius: 4, background: ['#c8d9cd', '#e1cabb', '#c8d7d8'][i], marginBottom: 9 }} /><div style={{ height: 5, width: '70%', background: '#bccbc0', borderRadius: 3 }} /><div style={{ height: 4, width: '90%', background: '#e0e7e1', borderRadius: 3, marginTop: 6 }} /></ElementReveal>)}
             </div>
           </div>
-          {empty > 0 && <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: '#f8faf8', opacity: empty }}><svg width={58} height={64} viewBox="0 0 58 64" fill="none" stroke={C.muted} strokeWidth={2}><path d="M10 2H35L48 16V62H10Z M35 2V16H48 M20 34L36 48M36 34L20 48" /></svg><div style={{ marginTop: 10, fontSize: 86, lineHeight: 1, letterSpacing: -4, color: C.ink }}>404</div><div style={{ marginTop: 14, color: C.muted, fontSize: 22 }}>Page not found</div></div>}
+          {beat.action === 'empty' && <ElementReveal at={beat.at + 12} frame={frame} transition={{ style: 'cut' }} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: '#f8faf8' }}><svg width={58} height={64} viewBox="0 0 58 64" fill="none" stroke={C.muted} strokeWidth={2}><path d="M10 2H35L48 16V62H10Z M35 2V16H48 M20 34L36 48M36 34L20 48" /></svg><div style={{ marginTop: 10, fontSize: 86, lineHeight: 1, letterSpacing: -4, color: C.ink }}>404</div><div style={{ marginTop: 14, color: C.muted, fontSize: 22 }}>Page not found</div></ElementReveal>}
         </div>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 24, background: '#eff3f0', borderTop: '1px solid #d5e0d7', padding: '4px 13px', boxSizing: 'border-box', fontSize: 11, color: '#658172' }}>◦ Local preview<span style={{ float: 'right' }}>Illustrated interface</span></div>
         <svg width={30} height={38} viewBox="0 0 30 38" style={{ position: 'absolute', left: cursorFrom.x + (cursorTarget.x - cursorFrom.x) * p, top: cursorFrom.y + (cursorTarget.y - cursorFrom.y) * p, filter: 'drop-shadow(1px 2px 2px #0003)' }}><path d="M2 2V30L10 22L16 35L21 32L15 20H27Z" fill="#fff" stroke="#193a2b" strokeWidth={1.8} /></svg>
@@ -114,7 +114,7 @@ export const GroupChatVisual: React.FC<Props<'group-chat'>> = ({ visual, shot, f
       <div style={{ position: 'relative', height: 144 }}><svg width={240} height={140} style={{ position: 'absolute', inset: 0 }}><path d="M42 39L125 81L204 28M125 81L192 122" fill="none" stroke={C.line} strokeWidth={2} /></svg>{[[12, 8], [95, 50], [174, 0], [162, 92]].map(([x, y], i) => <div key={i} style={{ position: 'absolute', left: x, top: y, padding: 4, background: C.paper, borderRadius: 14, boxShadow: '0 4px 10px #173d3a0c' }}><Person size={46} color={['#b7c8bd', '#b4c8ce', '#cbbdac', '#adbcc8'][i]} /></div>)}</div>
       <div style={{ marginTop: 30, fontSize: 18, letterSpacing: 2, color: C.muted }}>GROUP NAME</div>
       <div style={{ marginTop: 18, fontSize: 34, lineHeight: 1.14, fontWeight: 600, letterSpacing: -.7, overflowWrap: 'anywhere' }}>{currentName}</div>
-      {saved && <div style={{ marginTop: 20, color: green, fontSize: 22 }}>✓ Updated</div>}
+      {saved && <ElementReveal at={savedAt ?? beat.at} frame={frame} transition={{ style: 'fade' }} style={{ marginTop: 20, color: green, fontSize: 22 }}>✓ Updated</ElementReveal>}
     </div>}
     <div style={{ position: 'absolute', left: L.left, top: 1115, color: C.muted, fontSize: 18, letterSpacing: .6 }}>Illustrated interface</div>
     <div style={{ position: 'absolute', left: L.left + 330, top: 465, width: 550, height: 1040, borderRadius: 74, background: 'linear-gradient(105deg,#7f8b85,#151d19 3%,#121915 97%,#697c70)', boxShadow: '0 26px 48px #173d3a28, inset 0 0 0 2px #63756a', padding: 14, boxSizing: 'border-box' }}>
@@ -122,11 +122,11 @@ export const GroupChatVisual: React.FC<Props<'group-chat'>> = ({ visual, shot, f
       <div style={{ position: 'relative', height: '100%', borderRadius: 61, background: '#ededed', overflow: 'hidden', color: '#202721' }}>
         <div style={{ height: 57, background: '#f8f8f8', position: 'relative' }}><div style={{ position: 'absolute', left: 30, top: 17, fontSize: 21, fontWeight: 600 }}>9:41</div><div style={{ position: 'absolute', left: 207, top: 10, width: 108, height: 29, background: '#111713', borderRadius: 18 }} /><svg width={88} height={25} viewBox="0 0 88 25" style={{ position: 'absolute', right: 28, top: 16 }} fill="none" stroke="#1b261e" strokeWidth={2}><path d="M3 19V15M9 19V11M15 19V6M21 19V2M31 8Q42-1 53 8M35 12Q42 6 49 12M40 17H44" /><rect x={60} y={5} width={23} height={13} rx={3} /><path d="M86 9V14" /><rect x={63} y={8} width={17} height={7} rx={1} fill="#1b261e" /></svg></div>
         <div style={{ height: 77, background: '#f8f8f8', borderBottom: '1px solid #d8ddd9', display: 'flex', alignItems: 'center', padding: '0 23px', gap: 15 }}><Arrow back /><div style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: 25, fontWeight: 600, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{rename ? 'Group Name' : info ? 'Group Info' : currentName}</div>{rename ? <div style={{ color: green, fontSize: 22 }}>Save</div> : <span style={{ fontSize: 27, letterSpacing: 1 }}>···</span>}</div>
-        <div key={beat.at} style={{ position: 'absolute', left: 0, right: 0, top: 135, bottom: 35, transform: `translateX(${(1 - progress(frame, beat.at, 22)) * 30}px)`, opacity: .6 + .4 * progress(frame, beat.at, 18) }}>
+        <ElementReveal key={beat.at} at={beat.at} frame={frame} transition={{ style: 'slide', from: 'right' }} distance={30} style={{ position: 'absolute', left: 0, right: 0, top: 135, bottom: 35 }}>
           {rename ? <>
             <div style={{ marginTop: 24, background: '#fff', padding: '22px 26px 28px', borderBottom: `2px solid ${green}` }}><div style={{ color: '#8a968d', fontSize: 21, marginBottom: 18 }}>Group name</div><div style={{ minHeight: 90, fontSize: 32, lineHeight: 1.25, overflowWrap: 'anywhere' }}>{typed}<span style={{ display: 'inline-block', width: 2, height: 34, background: green, marginLeft: 4, verticalAlign: 'middle', opacity: Math.floor(frame / 15) % 2 ? 1 : .25 }} /></div></div>
             <div style={{ padding: '18px 26px', color: '#8c978f', fontSize: 19 }}>A new name for the same group.</div>
-            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}><Keyboard phone frame={frame} at={beat.at + 16} /></div>
+            <ElementReveal at={beat.at + 16} frame={frame} transition={{ style: 'slide', from: 'bottom' }} distance={90} style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}><Keyboard phone frame={frame} at={beat.at + 16} /></ElementReveal>
             <Touch x={475} y={-40} at={beat.at + 94} frame={frame} />
           </> : info ? <>
             <div style={{ padding: '28px 28px 23px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '19px 25px', background: '#fff' }}>{Array.from({ length: 7 }, (_, i) => <div key={i} style={{ display: 'grid', placeItems: 'center' }}><Person size={64} color={['#b7c8bd', '#b4c8ce', '#cbbdac', '#adbcc8'][i % 4]} /></div>)}<div style={{ width: 62, height: 62, border: '1px solid #d8dfd9', borderRadius: 10, color: '#a4b2a7', fontSize: 43, textAlign: 'center', lineHeight: '56px' }}>+</div></div>
@@ -139,7 +139,7 @@ export const GroupChatVisual: React.FC<Props<'group-chat'>> = ({ visual, shot, f
             </div>
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 75, borderTop: '1px solid #d6ded7', background: '#f8f8f8', padding: '15px 17px', display: 'flex', alignItems: 'center', gap: 14, boxSizing: 'border-box' }}><svg width={29} height={29} viewBox="0 0 29 29" fill="none" stroke="#5f7465" strokeWidth={1.6}><circle cx={14.5} cy={14.5} r={12} /><path d="M11 8Q18 14 11 21M16 8Q23 14 16 21" /></svg><div style={{ flex: 1, height: 43, background: '#fff', borderRadius: 7 }} /><span style={{ fontSize: 30, color: '#5f7465' }}>☺</span><div style={{ width: 27, height: 27, border: '1.8px solid #5f7465', borderRadius: '50%', textAlign: 'center', lineHeight: '25px', color: '#5f7465', fontSize: 26 }}>+</div></div>
           </>}
-        </div>
+        </ElementReveal>
         <div style={{ position: 'absolute', left: 176, bottom: 11, width: 170, height: 6, borderRadius: 4, background: '#1d2821' }} />
       </div>
     </div>
@@ -159,6 +159,6 @@ export const BookVisual: React.FC<Props<'media'>> = ({ visual, shot, frame }) =>
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 22, background: 'linear-gradient(90deg,#0005,transparent)' }} />
       <div style={{ position: 'absolute', inset: 0, borderRadius: 5, border: '1px solid #ffffff40', background: `linear-gradient(${110 + angle}deg, transparent 25%, #ffffff0e 48%, transparent 64%)` }} />
     </div>
-    {image.label && <div style={{ position: 'absolute', left: -70, top: -34, padding: '10px 18px', borderRadius: 8, background: C.paper, color: C.ink, fontSize: 24, fontWeight: 600, boxShadow: `0 5px 12px ${C.ink}12`, opacity: progress(frame, Math.max(image.at, shot.from) + 18) }}>{image.label}</div>}
+    {image.label && <ElementReveal at={Math.max(image.at, shot.from) + 18} frame={frame} transition={{ style: 'fade' }} style={{ position: 'absolute', left: -70, top: -34, padding: '10px 18px', borderRadius: 8, background: C.paper, color: C.ink, fontSize: 24, fontWeight: 600, boxShadow: `0 5px 12px ${C.ink}12` }}>{image.label}</ElementReveal>}
   </div>;
 };

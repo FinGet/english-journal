@@ -77,6 +77,12 @@ export function validateProduction(p, { final = false, cover = false } = {}) {
     fail(frame(s.from) && frame(s.to) && s.from === end && s.to > s.from, `Shot gap/overlap: ${s.id}`); end = s.to;
     for (const key of ['intent', 'action', 'outcome']) fail(typeof s[key] === 'string' && s[key].trim(), `Missing ${s.id} ${key}`);
     fail(['hero', 'side', 'chip'].includes(s.portrait), `Unknown portrait: ${s.id}`);
+    if (s.from === 0) fail(s.transition === undefined, 'The opening shot cannot have an incoming transition');
+    else {
+      fail(s.transition && ['cut', 'fade', 'depth', 'slide'].includes(s.transition.style), `Choose a transition for ${s.id}`);
+      if (s.transition.style === 'slide') fail(['left', 'right', 'top', 'bottom'].includes(s.transition.from), `Slide transition needs an explicit source direction: ${s.id}`);
+      else fail(s.transition.from === undefined, `Only slide transitions use a source direction: ${s.id}`);
+    }
     const at = n => fail(frame(n) && n >= s.from && n < s.to, `Cue outside shot: ${s.id}`);
     fail(Array.isArray(s.titles), `Missing title beats: ${s.id}`);
     for (const t of s.titles) { at(t.at); english(t.text, 'Shot title', 48); if (t.until !== undefined) fail(frame(t.until) && t.until > t.at && t.until <= s.to, 'Invalid title hold'); }
