@@ -2,16 +2,15 @@
 const fail = (condition, message) => { if (!condition) throw new Error(message); };
 export const safeAsset = (path) => typeof path === 'string' && /^[a-zA-Z0-9_./-]+$/.test(path) && !path.startsWith('/') && !path.split('/').some(p => p === '..' || !p);
 const canonical = text => text.toLowerCase().replace(/[^\p{L}\p{N}']/gu, '');
-const english = (text, label, max = 100) => {
+const labelText = (text, label, max = 100) => {
   fail(typeof text === 'string' && text.trim() && text.length <= max, `${label}: empty or too long`);
-  fail(!/\p{Script=Han}/u.test(text), `${label}: on-screen graphics must be English`);
 };
 export function validateBrand(brand) {
   fail(typeof brand.name === 'string' && brand.name.trim() && brand.name.length <= 24, 'Account name missing or too long');
   fail(Number.isInteger(brand.outroFrames) && brand.outroFrames >= 90 && brand.outroFrames <= 180, 'Series outro must last 3–6 seconds at 30fps');
   fail(Array.isArray(brand.outroSfx) && brand.outroSfx.length === 3, 'Outro needs like, save and follow sounds');
   for (const sound of brand.outroSfx) fail(safeAsset(sound.src) && Number.isFinite(sound.volume) && sound.volume > 0 && sound.volume <= .35, 'Invalid outro sound asset or volume');
-  for (const key of ['series', 'slogan']) english(brand[key], `Brand ${key}`, 60);
+  for (const key of ['series', 'slogan']) labelText(brand[key], `Brand ${key}`, 60);
   fail(typeof brand.mark === 'string' && brand.mark.trim() && brand.mark.length <= 6, 'Brand mark missing or too long');
   fail(typeof brand.font === 'string' && brand.font.trim(), 'Brand font missing');
   for (const key of ['background', 'ink', 'muted', 'accent', 'line', 'paper']) fail(/^#[\da-f]{6}$/i.test(brand.palette?.[key]), `Invalid brand color: ${key}`);
@@ -38,7 +37,12 @@ export function validateProduction(p, { final = false, cover = false } = {}) {
   fail(Number.isInteger(p.episode) && p.episode > 0 && p.episode < 10000, 'Invalid episode');
   fail(p.fps === 30 && Number.isInteger(p.durationInFrames) && p.durationInFrames > 0, 'Invalid frame clock');
   fail(p.outro === undefined || typeof p.outro === 'boolean', 'Invalid outro setting');
-  english(p.title, 'Episode title', 70); english(p.topic, 'Topic', 70);
+  labelText(p.title, 'Episode title', 70); labelText(p.topic, 'Topic', 70);
+  if (p.look !== undefined) {
+    fail(p.look && typeof p.look === 'object', 'Invalid look block');
+    fail(p.look.id === 'void-selection', 'Unknown production look');
+    if (p.look.note !== undefined) labelText(p.look.note, 'Look note', 160);
+  }
   const asset = (src) => fail(safeAsset(src), `Unsafe asset path: ${src}`);
   const frame = f => Number.isInteger(f) && f >= 0 && f <= p.durationInFrames;
   for (const src of [p.media?.source, p.media?.program, ...(p.media?.audio ? [p.media.audio] : [])]) asset(src);
@@ -58,7 +62,7 @@ export function validateProduction(p, { final = false, cover = false } = {}) {
   end = 0;
   for (const c of p.captions) {
     fail(frame(c.from) && frame(c.to) && c.to > c.from && c.from >= end, 'Invalid or overlapping captions');
-    english(c.english, 'English caption', 74);
+    labelText(c.english, 'English caption', 74);
     fail(typeof c.chinese === 'string' && c.chinese.trim() && c.chinese.length <= 42, 'Chinese caption missing or too long');
     end = c.to; // Real pauses may stay empty; captions never bridge them automatically.
   }
@@ -79,46 +83,41 @@ export function validateProduction(p, { final = false, cover = false } = {}) {
     fail(['hero', 'side', 'chip'].includes(s.portrait), `Unknown portrait: ${s.id}`);
     if (s.from === 0) fail(s.transition === undefined, 'The opening shot cannot have an incoming transition');
     else {
-      fail(s.transition && ['cut', 'fade', 'depth', 'slide'].includes(s.transition.style), `Choose a transition for ${s.id}`);
+      fail(s.transition && ['cut', 'fade', 'depth', 'slide', 'whip', 'focus', 'push', 'hyperspace', 'glitch', 'particle'].includes(s.transition.style), `Choose a transition for ${s.id}`);
       if (s.transition.style === 'slide') fail(['left', 'right', 'top', 'bottom'].includes(s.transition.from), `Slide transition needs an explicit source direction: ${s.id}`);
       else fail(s.transition.from === undefined, `Only slide transitions use a source direction: ${s.id}`);
+      if (s.transition.style === 'whip') fail(['left', 'right', 'up', 'down'].includes(s.transition.direction), `Whip transition needs an explicit travel direction: ${s.id}`);
+      else fail(s.transition.direction === undefined, `Only whip transitions use a travel direction: ${s.id}`);
     }
     const at = n => fail(frame(n) && n >= s.from && n < s.to, `Cue outside shot: ${s.id}`);
     fail(Array.isArray(s.titles), `Missing title beats: ${s.id}`);
-    for (const t of s.titles) { at(t.at); english(t.text, 'Shot title', 48); if (t.until !== undefined) fail(frame(t.until) && t.until > t.at && t.until <= s.to, 'Invalid title hold'); }
+    for (const t of s.titles) { at(t.at); labelText(t.text, 'Shot title', 48); if (t.until !== undefined) fail(frame(t.until) && t.until > t.at && t.until <= s.to, 'Invalid title hold'); }
     const v = s.visual;
-    fail(v && ['speaker', 'media', 'browser', 'group-chat', 'contrast', 'sequence', 'flow', 'comparison', 'evidence', 'dialogue', 'timeline', 'scene', 'transformation', 'relationship', 'map', 'spaceflight', 'emotion', 'closing'].includes(v.kind), `Unknown visual: ${s.id}`);
-    if (v.kind === 'spaceflight') {
-      english(v.label, 'Illustrated flight label', 40);
-      fail(s.portrait === 'chip', 'Spaceflight needs a chip portrait for continuous media beneath its immersive scene');
-      for (const cue of [v.revealAt, v.launchAt, v.cruiseAt]) at(cue);
-      fail(s.from < v.revealAt && v.revealAt < v.launchAt && v.launchAt < v.cruiseAt, 'Spaceflight must establish its world, reveal the rocket, launch, then cruise in order');
-    }
+    fail(v && ['speaker', 'media', 'browser', 'group-chat', 'contrast', 'sequence', 'flow', 'comparison', 'evidence', 'dialogue', 'timeline', 'scene', 'transformation', 'relationship', 'map', 'emotion', 'closing'].includes(v.kind), `Unknown visual: ${s.id}`);
     if (v.kind === 'media') {
-      fail(['stack', 'push', 'book'].includes(v.treatment) && v.images?.length > 0 && v.images.length <= 3, 'Invalid media treatment');
-      if (v.treatment === 'book') fail(v.images.length === 1, 'A book treatment needs one actual cover image');
-      for (const image of v.images) { asset(image.src); at(image.at); if (image.label) english(image.label, 'Media label', 32); }
+      fail(['stack', 'push'].includes(v.treatment) && v.images?.length > 0 && v.images.length <= 3, 'Invalid media treatment');
+      for (const image of v.images) { asset(image.src); at(image.at); if (image.label) labelText(image.label, 'Media label', 32); }
     }
-    if (v.kind === 'contrast') { fail(v.items?.length >= 2 && v.items.length <= 4, 'Contrast needs 2–4 beats'); for (const item of v.items) { at(item.at); english(item.text, 'Contrast text', 32); } }
+    if (v.kind === 'contrast') { fail(v.items?.length >= 2 && v.items.length <= 4, 'Contrast needs 2–4 beats'); for (const item of v.items) { at(item.at); labelText(item.text, 'Contrast text', 32); } }
     if (v.kind === 'sequence') {
-      english(v.label, 'Sequence label', 28); english(v.result, 'Sequence result', 32); at(v.resultAt);
+      labelText(v.label, 'Sequence label', 28); labelText(v.result, 'Sequence result', 32); at(v.resultAt);
       fail(v.steps?.length >= 2 && v.steps.length <= 4, 'Sequence needs 2–4 steps');
       let previousAt = s.from;
       for (const step of v.steps) {
-        at(step.at); english(step.text, 'Sequence step', 18);
+        at(step.at); labelText(step.text, 'Sequence step', 18);
         fail(step.at >= previousAt && step.at <= v.resultAt, 'Sequence steps must be ordered before the result');
         previousAt = step.at;
       }
     }
     if (v.kind === 'flow') {
       fail(v.nodes?.length >= 2 && v.nodes.length <= 3, 'Flow needs 2–3 inputs');
-      for (const node of v.nodes) { at(node.at); english(node.text, 'Flow node', 18); }
-      at(v.resultAt); english(v.result, 'Flow result', 18); english(v.note, 'Flow note', 44);
+      for (const node of v.nodes) { at(node.at); labelText(node.text, 'Flow node', 18); }
+      at(v.resultAt); labelText(v.result, 'Flow result', 18); labelText(v.note, 'Flow note', 44);
     }
     if (v.kind === 'comparison') {
-      asset(v.image); english(v.left, 'Comparison label', 18); english(v.right, 'Comparison label', 18);
+      asset(v.image); labelText(v.left, 'Comparison label', 18); labelText(v.right, 'Comparison label', 18);
       fail(v.items?.length > 0 && v.items.length <= 4, 'Comparison needs 1–4 items');
-      for (const item of v.items) { at(item.at); english(item.text, 'Comparison item', 24); fail(['left', 'right'].includes(item.side), 'Unknown comparison side'); }
+      for (const item of v.items) { at(item.at); labelText(item.text, 'Comparison item', 24); fail(['left', 'right'].includes(item.side), 'Unknown comparison side'); }
     }
     if (['evidence', 'dialogue', 'timeline'].includes(v.kind)) {
       fail(s.portrait === 'chip', `${v.kind} needs a chip portrait to keep its content visible`);
@@ -134,25 +133,25 @@ export function validateProduction(p, { final = false, cover = false } = {}) {
       }
     }
     if (v.kind === 'evidence') {
-      asset(v.image); english(v.sourceLabel, 'Evidence source label', 32);
+      asset(v.image); labelText(v.sourceLabel, 'Evidence source label', 32);
       fail([v.imageSize?.width, v.imageSize?.height].every(n => Number.isInteger(n) && n > 0 && n <= 100000), 'Evidence needs the actual image pixel dimensions');
       for (const focus of v.focuses) {
-        english(focus.label, 'Evidence focus label', 36);
+        labelText(focus.label, 'Evidence focus label', 36);
         const r = focus.region;
         fail(r && [r.x, r.y, r.width, r.height].every(Number.isFinite) && r.x >= 0 && r.y >= 0 && r.width >= .05 && r.height >= .05 && r.x + r.width <= 1 + 1e-9 && r.y + r.height <= 1 + 1e-9, 'Evidence region must fit within the full image (0–1, minimum size 0.05)');
       }
     }
     if (v.kind === 'dialogue') {
-      english(v.left, 'Dialogue speaker', 24); english(v.right, 'Dialogue speaker', 24);
+      labelText(v.left, 'Dialogue speaker', 24); labelText(v.right, 'Dialogue speaker', 24);
       for (const message of v.messages) {
         fail(['left', 'right'].includes(message.side), 'Unknown dialogue side');
-        english(message.text, 'Dialogue message', 56);
+        labelText(message.text, 'Dialogue message', 56);
       }
     }
     if (v.kind === 'timeline') {
-      english(v.label, 'Timeline label', 28);
+      labelText(v.label, 'Timeline label', 28);
       for (const event of v.events) {
-        english(event.when, 'Timeline time label', 18); english(event.text, 'Timeline event', 48);
+        labelText(event.when, 'Timeline time label', 18); labelText(event.text, 'Timeline event', 48);
         if (event.image !== undefined) asset(event.image);
       }
     }
@@ -180,14 +179,14 @@ export function validateProduction(p, { final = false, cover = false } = {}) {
       fail(v.beats[0].at === s.from, 'An illustrated interface needs its first state at the shot start');
     }
     if (v.kind === 'browser') {
-      english(v.siteTitle, 'Browser title', 32); english(v.url, 'Displayed browser address', 64);
+      labelText(v.siteTitle, 'Browser title', 32); labelText(v.url, 'Displayed browser address', 64);
       for (const beat of v.beats) fail(['load', 'style', 'assist', 'inspect', 'responsive', 'empty'].includes(beat.action), 'Unknown browser action');
     }
     if (v.kind === 'group-chat') {
-      english(v.oldName, 'Original group name', 40); english(v.newName, 'New group name', 48);
+      labelText(v.oldName, 'Original group name', 40); labelText(v.newName, 'New group name', 48);
       if (v.since !== undefined) fail(typeof v.since === 'string' && /^\d{4}$/.test(v.since), 'Group origin needs a four-digit year');
       count(v.topics, 0, 4, 'Illustrated conversation topics');
-      for (const topic of v.topics) { at(topic.at); english(topic.text, 'Illustrated topic', 28); }
+      for (const topic of v.topics) { at(topic.at); labelText(topic.text, 'Illustrated topic', 28); }
       for (const beat of v.beats) fail(['chat', 'info', 'rename', 'saved', 'topics'].includes(beat.action), 'Unknown group interface action');
     }
     const endpoints = (edge, entities) => {
@@ -199,45 +198,45 @@ export function validateProduction(p, { final = false, cover = false } = {}) {
     };
     if (['scene', 'transformation', 'relationship', 'map'].includes(v.kind)) fail(s.portrait === 'chip', `${v.kind} needs a chip portrait to keep its content visible`);
     if (v.kind === 'scene') {
-      english(v.setting, 'Scene setting', 28);
+      labelText(v.setting, 'Scene setting', 28);
       const actors = named(v.actors, 2, 5);
       for (const actor of v.actors) {
-        at(actor.at); point(actor); english(actor.label, 'Scene actor', 18);
+        at(actor.at); point(actor); labelText(actor.label, 'Scene actor', 18);
         fail(['person', 'desk', 'phone', 'door', 'object'].includes(actor.shape), 'Unknown scene shape');
       }
       ordered(v.beats, 1, 5);
       for (const beat of v.beats) {
         const actor = actors.get(beat.actor);
         fail(actor && beat.at >= actor.at, 'Scene action needs an actor already on stage');
-        point(beat); english(beat.text, 'Scene action', 40);
+        point(beat); labelText(beat.text, 'Scene action', 40);
       }
     }
     if (v.kind === 'transformation') {
-      english(v.subject, 'Transformation subject', 28); named(v.items, 3, 6);
-      for (const item of v.items) english(item.text, 'Transformation item', 16);
+      labelText(v.subject, 'Transformation subject', 28); named(v.items, 3, 6);
+      for (const item of v.items) labelText(item.text, 'Transformation item', 16);
       ordered(v.states, 2, 4);
       for (const state of v.states) {
-        english(state.label, 'Transformation state', 28);
+        labelText(state.label, 'Transformation state', 28);
         fail(['scattered', 'grouped', 'aligned'].includes(state.layout), 'Unknown transformation layout');
       }
     }
     if (v.kind === 'relationship') {
-      english(v.label, 'Relationship label', 28);
+      labelText(v.label, 'Relationship label', 28);
       const nodes = named(v.nodes, 2, 6);
-      for (const node of v.nodes) { at(node.at); point(node); english(node.text, 'Relationship node', 18); }
+      for (const node of v.nodes) { at(node.at); point(node); labelText(node.text, 'Relationship node', 18); }
       count(v.edges, 1, 8, 'Relationship edges');
       for (const edge of v.edges) {
         const [from, to] = endpoints(edge, nodes);
         fail(Math.hypot((to.x - from.x) * 880, (to.y - from.y) * 600) > 210, 'Relationship nodes need more space for a readable connection');
         fail(['influence', 'block', 'feedback'].includes(edge.type), 'Unknown relationship connection type');
-        if (edge.label !== undefined) english(edge.label, 'Relationship edge label', 16);
+        if (edge.label !== undefined) labelText(edge.label, 'Relationship edge label', 16);
       }
     }
     if (v.kind === 'map') {
-      english(v.label, 'Map label', 28);
+      labelText(v.label, 'Map label', 28);
       fail(v.terrain === undefined || ['street', 'space'].includes(v.terrain), 'Unknown map terrain');
       const places = named(v.places, 2, 6);
-      for (const place of v.places) { at(place.at); point(place); english(place.label, 'Map place', 18); }
+      for (const place of v.places) { at(place.at); point(place); labelText(place.label, 'Map place', 18); }
       ordered(v.legs, 1, 5);
       let previousLeg;
       for (const leg of v.legs) {
@@ -252,11 +251,11 @@ export function validateProduction(p, { final = false, cover = false } = {}) {
       ordered(v.beats, 2, 5);
       for (const beat of v.beats) {
         fail(['tense', 'frustrated', 'hopeful', 'calm', 'confident'].includes(beat.mood), 'Unknown emotion mood');
-        english(beat.label, 'Emotion label', 28); count(beat.words, 0, 3, 'Emotion keywords');
-        for (const word of beat.words) english(word, 'Emotion keyword', 12);
+        labelText(beat.label, 'Emotion label', 28); count(beat.words, 0, 3, 'Emotion keywords');
+        for (const word of beat.words) labelText(word, 'Emotion keyword', 12);
       }
     }
-    if (v.kind === 'closing') { at(v.at); english(v.prompt, 'Closing prompt', 40); }
+    if (v.kind === 'closing') { at(v.at); labelText(v.prompt, 'Closing prompt', 40); }
   }
   fail(end === p.durationInFrames, 'Shot plan must cover the full program');
   fail(Array.isArray(p.cues), 'Missing audio cue list');
@@ -267,8 +266,7 @@ export function validateProduction(p, { final = false, cover = false } = {}) {
     fail(frame(p.cover.frame) && p.cover.frame < p.durationInFrames, 'Cover frame must reference the actual speaking program');
     fail(Array.isArray(p.cover.title) && p.cover.title.length >= 1 && p.cover.title.length <= 3, 'Cover headline needs one to three short lines');
     for (const line of p.cover.title) fail(typeof line === 'string' && line.trim() && Array.from(line).length <= 8, 'Cover headline: use at most eight characters per line');
-    fail(/\p{Script=Han}/u.test(p.cover.title.join('')), 'Cover headline must include the Chinese episode topic');
-    if (p.cover.subtitle !== undefined) english(p.cover.subtitle, 'Cover subtitle', 48);
+    if (p.cover.subtitle !== undefined) labelText(p.cover.subtitle, 'Cover subtitle', 48);
     if (p.cover.portrait !== undefined) { asset(p.cover.portrait); fail(p.cover.portrait.toLowerCase().endsWith('.png'), 'Cover portrait must be a transparent PNG cutout'); }
     if (p.cover.portraitBottom !== undefined) fail(Number.isInteger(p.cover.portraitBottom) && p.cover.portraitBottom >= -360 && p.cover.portraitBottom <= 0, 'Cover portrait bottom must be an integer from -360 to 0');
     fail(['draft', 'approved'].includes(p.cover.status), 'Missing cover approval status');

@@ -1,8 +1,9 @@
-export type CameraPoint = { x: number; y: number };
-export type TransitionSpec = { style: 'cut' | 'fade' | 'depth' } | { style: 'slide'; from: 'left' | 'right' | 'top' | 'bottom' };
-export type SpatialCamera = CameraPoint & { scale: number; opacity: number };
+export type TransitionSpec =
+  | { style: 'cut' | 'fade' | 'depth' | 'focus' | 'push' | 'hyperspace' | 'glitch' | 'particle' }
+  | { style: 'slide'; from: 'left' | 'right' | 'top' | 'bottom' }
+  | { style: 'whip'; direction: 'left' | 'right' | 'up' | 'down' };
+export const SCENE_TRANSITION_FRAMES: number;
+export function transitionEasing(value: number): number;
 export function cameraTransition(frame: number, start: number, duration?: number): number;
-export function slideVector(from: 'left' | 'right' | 'top' | 'bottom'): CameraPoint;
-export function spatialCamera(input: { transition: number; role: 'current' | 'previous'; spec: TransitionSpec; width?: number; height?: number }): SpatialCamera;
-export function elementMotion(input: { transition: number; active: boolean; spec: TransitionSpec; distance?: number }): SpatialCamera;
-export function worldCamera(input: { transitions: Array<TransitionSpec | undefined>; index: number; transition: number; width?: number; height?: number }): CameraPoint;
+export function transitionDuration(spec?: TransitionSpec): number;
+export function shotSequenceDuration(shots: Array<{ from: number; to: number; transition?: TransitionSpec }>, index: number): number;

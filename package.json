@@ -9,12 +9,10 @@
   "scripts": {
     "dev": "node scripts/remotion.mjs studio",
     "setup": "node scripts/setup.mjs",
-    "episode:new": "node scripts/new-episode.mjs",
     "cover": "node scripts/remotion.mjs cover",
     "post": "node scripts/post.mjs",
     "publish:feishu": "node scripts/publish-feishu.mjs",
     "previews": "node scripts/previews.mjs",
-    "sample": "node scripts/remotion.mjs sample",
     "check": "node scripts/check.mjs && tsc --noEmit",
     "still": "node scripts/remotion.mjs still",
     "render": "node scripts/remotion.mjs render",
@@ -31,13 +29,27 @@
     "trim": "node scripts/trim-pauses.mjs"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.539",
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
+    "@remotion/captions": "4.0.545",
+    "@remotion/cli": "4.0.545",
+    "@remotion/google-fonts": "4.0.545",
+    "@remotion/layout-utils": "4.0.545",
+    "@remotion/media": "4.0.545",
+    "@remotion/media-utils": "4.0.545",
+    "@remotion/paths": "4.0.545",
+    "@remotion/sfx": "4.0.545",
+    "@remotion/three": "4.0.545",
+    "@remotion/transitions": "4.0.545",
+    "culori": "^4.0.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "remotion": "4.0.539"
+    "remotion": "4.0.545",
+    "three": "^0.187.0"
   },
   "devDependencies": {
-    "@remotion/eslint-config-flat": "4.0.539",
+    "@remotion/eslint-config-flat": "4.0.545",
+    "@types/culori": "^4.0.1",
     "@types/react": "19.2.7",
     "eslint": "10.12.0",
     "typescript": "5.9.3"

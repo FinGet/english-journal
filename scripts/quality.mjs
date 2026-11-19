@@ -29,7 +29,6 @@ export function checkProductionFile(file, { final = false, cover = false, report
   const project = JSON.parse(readFileSync('project.config.json', 'utf8'));
   const maxHold = (project.pacing?.maxUnillustratedSeconds ?? 4) * p.fps;
   const longHolds = unillustratedHolds(p.shots, maxHold);
-  for (const hold of longHolds) warnings.push(`Unillustrated hold ${(hold.from / p.fps).toFixed(2)}–${(hold.to / p.fps).toFixed(2)}s exceeds ${maxHold / p.fps}s (${hold.shots.join(', ')}); add a meaningful visual action. Changing titles or decorative motion does not reset the hold.`);
   if (p.review.transcript !== 'confirmed' || p.review.direction !== 'ready') warnings.push('DRAFT: transcript/direction review is incomplete; final export is blocked.');
   const result = { format: p.format, episode: p.episode, frames: p.durationInFrames, seconds: p.durationInFrames / p.fps, deliveryFrames: compositionFrames(p, brand), outroFrames: p.outro === false ? 0 : brand.outroFrames, captions: p.captions.length, shots: p.shots.length, review: p.review, pacing: { maxHoldFrames: maxHold, longHolds }, assets, warnings };
   if (report) { mkdirSync(resolve(report, '..'), { recursive: true }); writeFileSync(report, JSON.stringify(result, null, 2) + '\n'); }

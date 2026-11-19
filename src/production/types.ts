@@ -1,10 +1,13 @@
 export type Caption = { from: number; to: number; english: string; chinese: string };
 export type Stamp = { from: number; to: number; text: string };
 export type TitleBeat = { at: number; until?: number; text: string };
-export type ShotTransition = { style: 'cut' | 'fade' | 'depth' } | { style: 'slide'; from: 'left' | 'right' | 'top' | 'bottom' };
+export type ShotTransition =
+  | { style: 'cut' | 'fade' | 'depth' | 'focus' | 'push' | 'hyperspace' | 'glitch' | 'particle' }
+  | { style: 'slide'; from: 'left' | 'right' | 'top' | 'bottom' }
+  | { style: 'whip'; direction: 'left' | 'right' | 'up' | 'down' };
 export type Visual =
   | { kind: 'speaker' }
-  | { kind: 'media'; images: { src: string; at: number; label?: string }[]; treatment: 'stack' | 'push' | 'book' }
+  | { kind: 'media'; images: { src: string; at: number; label?: string }[]; treatment: 'stack' | 'push' }
   | { kind: 'browser'; siteTitle: string; url: string; beats: { at: number; action: 'load' | 'style' | 'assist' | 'inspect' | 'responsive' | 'empty' }[] }
   | { kind: 'group-chat'; oldName: string; newName: string; since?: string; topics: { text: string; at: number }[]; beats: { at: number; action: 'chat' | 'info' | 'rename' | 'saved' | 'topics' }[] }
   | { kind: 'contrast'; items: { text: string; at: number; emphasis?: boolean }[] }
@@ -18,7 +21,6 @@ export type Visual =
   | { kind: 'transformation'; subject: string; items: { id: string; text: string }[]; states: { at: number; label: string; layout: 'scattered' | 'grouped' | 'aligned' }[] }
   | { kind: 'relationship'; label: string; nodes: { id: string; text: string; at: number; x: number; y: number }[]; edges: { from: string; to: string; at: number; type: 'influence' | 'block' | 'feedback'; label?: string }[] }
   | { kind: 'map'; label: string; terrain?: 'street' | 'space'; places: { id: string; label: string; at: number; x: number; y: number }[]; legs: { from: string; to: string; at: number; arriveAt: number }[] }
-  | { kind: 'spaceflight'; label: string; revealAt: number; launchAt: number; cruiseAt: number }
   | { kind: 'emotion'; beats: { at: number; mood: 'tense' | 'frustrated' | 'hopeful' | 'calm' | 'confident'; label: string; words: string[] }[] }
   | { kind: 'closing'; prompt: string; at: number };
 export type Shot = {
@@ -28,10 +30,15 @@ export type Shot = {
   portrait: 'hero' | 'side' | 'chip';
   titles: TitleBeat[]; visual: Visual;
 };
+export type ProductionLook = {
+  id: 'void-selection';
+  note?: string;
+};
 export type Production = {
   format: 'english-journal/v2'; episode: number; title: string; topic: string;
   fps: 30; durationInFrames: number;
   outro?: boolean;
+  look?: ProductionLook;
   media: {
     source: string; sourceSha256: string; sourceDurationInFrames: number;
     program: string; programSha256: string; audio?: string; volume?: number;

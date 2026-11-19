@@ -25,3 +25,5 @@ public/*
 public/fonts/*
 !public/fonts/outfit-latin.woff2
 !public/fonts/Outfit-OFL.txt
+
+!public/remotion-tour/
