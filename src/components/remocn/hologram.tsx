@@ -6,7 +6,7 @@ import {
   type CanvasFilterProps,
   makeCanvasFilter,
   makeFilterShader,
-} from "@/lib/remocn/canvas-presentation";
+} from "../../lib/remocn/canvas-presentation";
 
 export type HologramProps = {
   tint?: string;

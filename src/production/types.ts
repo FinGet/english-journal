@@ -30,15 +30,10 @@ export type Shot = {
   portrait: 'hero' | 'side' | 'chip';
   titles: TitleBeat[]; visual: Visual;
 };
-export type ProductionLook = {
-  id: 'void-selection';
-  note?: string;
-};
 export type Production = {
   format: 'english-journal/v2'; episode: number; title: string; topic: string;
   fps: 30; durationInFrames: number;
   outro?: boolean;
-  look?: ProductionLook;
   media: {
     source: string; sourceSha256: string; sourceDurationInFrames: number;
     program: string; programSha256: string; audio?: string; volume?: number;

@@ -13,9 +13,9 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import type { GradientParams } from "@/lib/remocn/gsh/gradient-engine";
-import { GshGround } from "@/lib/remocn/gsh/gsh-ground";
-import type { GshPresetId } from "@/lib/remocn/gsh/presets";
+import type { GradientParams } from "../../lib/remocn/gsh/gradient-engine";
+import { GshGround } from "../../lib/remocn/gsh/gsh-ground";
+import type { GshPresetId } from "../../lib/remocn/gsh/presets";
 
 const figtree = loadFont("normal", {
   weights: ["300", "400"],

@@ -38,11 +38,6 @@ export function validateProduction(p, { final = false, cover = false } = {}) {
   fail(p.fps === 30 && Number.isInteger(p.durationInFrames) && p.durationInFrames > 0, 'Invalid frame clock');
   fail(p.outro === undefined || typeof p.outro === 'boolean', 'Invalid outro setting');
   labelText(p.title, 'Episode title', 70); labelText(p.topic, 'Topic', 70);
-  if (p.look !== undefined) {
-    fail(p.look && typeof p.look === 'object', 'Invalid look block');
-    fail(p.look.id === 'void-selection', 'Unknown production look');
-    if (p.look.note !== undefined) labelText(p.look.note, 'Look note', 160);
-  }
   const asset = (src) => fail(safeAsset(src), `Unsafe asset path: ${src}`);
   const frame = f => Number.isInteger(f) && f >= 0 && f <= p.durationInFrames;
   for (const src of [p.media?.source, p.media?.program, ...(p.media?.audio ? [p.media.audio] : [])]) asset(src);

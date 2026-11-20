@@ -11,9 +11,9 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import type { GradientParams } from "@/lib/remocn/gsh/gradient-engine";
-import { GshGround } from "@/lib/remocn/gsh/gsh-ground";
-import type { GshPresetId } from "@/lib/remocn/gsh/presets";
+import type { GradientParams } from "../../lib/remocn/gsh/gradient-engine";
+import { GshGround } from "../../lib/remocn/gsh/gsh-ground";
+import type { GshPresetId } from "../../lib/remocn/gsh/presets";
 
 const sans = "Arial, sans-serif";
 const display = sans;

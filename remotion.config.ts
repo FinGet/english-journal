@@ -10,4 +10,13 @@ Config.setCrf(project.export.crf);
 Config.setDelayRenderTimeoutInMilliseconds(project.export.frameTimeoutMs);
 Config.setOverwriteOutput(true);
 
-Config.overrideWebpackConfig((config) => ({ ...config, resolve: { ...config.resolve, alias: { ...config.resolve?.alias, "@": resolve("src") } } }));
+Config.overrideWebpackConfig((config) => ({
+  ...config,
+  resolve: {
+    ...config.resolve,
+    alias: {
+      ...config.resolve?.alias,
+      "@": resolve(process.cwd(), "src"),
+    },
+  },
+}));

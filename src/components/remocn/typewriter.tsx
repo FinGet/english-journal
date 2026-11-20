@@ -1,7 +1,7 @@
 "use client";
 
-import { Caret } from "@/components/remocn/caret";
-import { useTypewriter } from "@/lib/remocn-ui";
+import { Caret } from "./caret";
+import { useTypewriter } from "../../lib/remocn-ui";
 
 export interface TypewriterProps {
   text: string;

@@ -9,7 +9,7 @@ import { AbsoluteFill } from "remotion";
 import {
   makeCanvasPresentation,
   makeSceneShader,
-} from "@/lib/remocn/canvas-presentation";
+} from "../../lib/remocn/canvas-presentation";
 
 export type GridWaveDirection = "ripple" | "left" | "right" | "up" | "down";
 
