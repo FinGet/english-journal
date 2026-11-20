@@ -2,33 +2,14 @@
   "name": "english-journal",
   "version": "0.1.0",
   "private": true,
-  "description": "A portrait speaking journal with real footage and bilingual captions.",
   "engines": {
     "node": "^20.19.0 || ^22.13.0 || >=24"
   },
   "scripts": {
-    "dev": "node scripts/remotion.mjs studio",
-    "setup": "node scripts/setup.mjs",
-    "episode:new": "node scripts/new-episode.mjs",
-    "cover": "node scripts/remotion.mjs cover",
-    "post": "node scripts/post.mjs",
-    "publish:feishu": "node scripts/publish-feishu.mjs",
-    "previews": "node scripts/previews.mjs",
-    "sample": "node scripts/remotion.mjs sample",
-    "check": "node scripts/check.mjs && tsc --noEmit",
-    "still": "node scripts/remotion.mjs still",
-    "render": "node scripts/remotion.mjs render",
-    "render:1080p": "node scripts/remotion.mjs render --scale 1",
-    "render:2k": "node scripts/remotion.mjs render --scale 1.3333333333333333",
-    "render:4k": "node scripts/remotion.mjs render --scale 2",
+    "dev": "remotion studio",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
-    "lint": "eslint src && tsc --noEmit",
-    "test": "node --test scripts/*.test.mjs",
-    "denoise": "node scripts/denoise-video.mjs",
-    "voice": "node scripts/prepare-voice.mjs",
-    "transcribe": "python3 scripts/transcribe.py",
-    "trim": "node scripts/trim-pauses.mjs"
+    "lint": "eslint src && tsc --noEmit"
   },
   "dependencies": {
     "@remotion/cli": "4.0.539",
