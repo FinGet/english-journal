@@ -7,12 +7,15 @@
   },
   "scripts": {
     "dev": "remotion studio",
+    "process-video": "node scripts/process-video.mjs",
+    "subtitles": "node scripts/process-video.mjs --subtitles",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc --noEmit"
   },
   "dependencies": {
     "@remotion/cli": "4.0.539",
+    "@remotion/google-fonts": "4.0.539",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "remotion": "4.0.539"

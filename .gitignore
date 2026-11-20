@@ -6,3 +6,14 @@ output
 out
 .DS_Store
 .env
+
+# Personal material stays local: recordings, transcripts, timelines.
+# Without them each episode shows a setup card (src/kit/EpisodeData.tsx) explaining how to make your own.
+public/*
+!public/sfx/
+# Episodes (code, director plans, translations) are personal too; only the READMEs are shared.
+episodes/*
+!episodes/README.md
+src/episodes/*
+!src/episodes/README.md
+*.denoised.mp4
