@@ -3,7 +3,8 @@ import { basename, dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { denoiseVideo, probe, transcribeVideo } from "./video-media.mjs";
 
-const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
+// Whisper can emit bare NaN / Infinity (e.g. "logprob": NaN), which is not valid JSON.
+const readJson = (path) => JSON.parse(readFileSync(path, "utf8").replace(/:\s*-?(NaN|Infinity)\b/g, ": null"));
 const writeJson = (path, value) => writeFileSync(path, JSON.stringify(value, null, 2) + "\n");
 const singleLine = (value) => typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
 

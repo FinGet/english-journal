@@ -33,6 +33,39 @@ for (const w of words) {
   else islands.push({ from: w.from, to: w.to });
 }
 
+// 1b. Never cut speech the word timings missed (ASR can drop or merge words; hand-corrected
+// captions can leave holes). A pause is only removed if no 100 ms window inside it is speech-loud.
+const SR = 16000;
+const SPEECH_DB = -40; // clean pauses measure ≈ −45 dB or quieter; speech ≈ −30 dB
+const pcm = execFileSync("ffmpeg", ["-v", "error", "-i", srcVideo, "-vn", "-ac", "1", "-ar", String(SR), "-f", "s16le", "-"], {
+  maxBuffer: 1 << 30,
+});
+const rmsDb = (a, z) => {
+  let s = 0;
+  for (let i = a; i < z; i++) {
+    const v = pcm.readInt16LE(i * 2) / 32768;
+    s += v * v;
+  }
+  return 10 * Math.log10(s / Math.max(1, z - a) + 1e-12);
+};
+const loudest = (fromFrame, toFrame) => {
+  const a = Math.round((fromFrame / FPS) * SR);
+  const z = Math.min(pcm.length / 2, Math.round((toFrame / FPS) * SR));
+  const win = SR / 10;
+  if (z - a < win) return rmsDb(a, z);
+  let best = -200;
+  for (let i = a; i + win <= z; i += win / 4) best = Math.max(best, rmsDb(i, i + win));
+  return best;
+};
+for (let i = islands.length - 1; i > 0; i--) {
+  const a = islands[i - 1].to + PAD_OUT;
+  const b = islands[i].from - PAD_IN;
+  if (b - a <= 0 || loudest(a, b) <= SPEECH_DB) continue;
+  console.warn(`keeping ${(a / FPS).toFixed(2)}s–${(b / FPS).toFixed(2)}s: speech found where the word timings have a pause`);
+  islands[i - 1].to = islands[i].to;
+  islands.splice(i, 1);
+}
+
 // 2. Pad and clamp so neighbours never overlap
 const segs = islands.map((s, i) => {
   const prevEnd = i > 0 ? islands[i - 1].to : 0;

@@ -1,5 +1,6 @@
 import React from "react";
-import { Composition } from "remotion";
+import { Composition, Still } from "remotion";
+import { COVER } from "./kit/Cover";
 import { CharacterSheet } from "./kit/character/CharacterSheet";
 import { loadEpisode, type EpisodeEntry, type EpisodeProps } from "./kit/EpisodeData";
 import { KitPreview } from "./kit/KitPreview";
@@ -17,6 +18,9 @@ const EPISODES = ctx
 export const RemotionRoot: React.FC = () => {
   return (
     <>
+      {EPISODES.filter((e) => e.cover).map((e) => (
+        <Still key={`${e.id}-Cover`} id={`${e.id}-Cover`} component={e.cover!} width={COVER.w} height={COVER.h} />
+      ))}
       {EPISODES.map((e) => (
         <Composition
           key={e.id}

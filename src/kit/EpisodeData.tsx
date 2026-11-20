@@ -14,7 +14,13 @@ export type Timeline = { durationInFrames: number; captions: Caption[]; words: W
 export type EpisodeProps = { dir: string; data: Timeline | null };
 
 /** What every src/episodes/<slug>/Episode.tsx exports as `episode`; src/Root.tsx discovers them. */
-export type EpisodeEntry = { id: string; dir: string; component: React.FC<EpisodeProps> };
+export type EpisodeEntry = {
+  id: string;
+  dir: string;
+  component: React.FC<EpisodeProps>;
+  /** Optional 3:4 cover built on src/kit/Cover.tsx; registered as the still `<id>-Cover`. */
+  cover?: React.FC;
+};
 
 const FALLBACK_FRAMES = 150;
 

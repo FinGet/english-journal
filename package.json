@@ -10,6 +10,9 @@
     "process-video": "node scripts/process-video.mjs",
     "subtitles": "node scripts/process-video.mjs --subtitles",
     "build": "remotion bundle",
+    "render": "node scripts/render.mjs",
+    "render:1080p": "node scripts/render.mjs --res 1080p",
+    "render:4k": "node scripts/render.mjs --res 4k",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc --noEmit"
   },

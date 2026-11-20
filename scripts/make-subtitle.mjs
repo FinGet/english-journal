@@ -27,7 +27,8 @@ const captions = srt
     return { from: fr(t(a)), to: fr(t(b)), english: lines[2] ?? "", chinese: lines.slice(3).join(" ") };
   });
 
-const whisper = JSON.parse(readFileSync(join(dir, "whisper.json"), "utf8"));
+// Whisper can emit bare NaN / Infinity, which is not valid JSON.
+const whisper = JSON.parse(readFileSync(join(dir, "whisper.json"), "utf8").replace(/:\s*-?(NaN|Infinity)\b/g, ": null"));
 const words = whisper.segments.flatMap((s) => (s.words ?? []).map((w) => ({ from: fr(w.start), to: fr(w.end), text: w.word.trim() })));
 
 writeFileSync(outPath, JSON.stringify({ captions, words }, null, 1));

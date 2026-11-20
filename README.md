@@ -39,6 +39,18 @@ npm run subtitles -- output/ep01 --translations path/to/translation.json
 
 素材准备完成后，从 `mg-styles-15` 选风格提示词，用 `motion-design` 结合原片和完整字幕做分镜，再用 Remotion Skills 实现和审片。设计顺序与竖屏约束见 [制作规则](AGENTS.md)。
 
+## 导出
+
+```sh
+npm run render -- ep12           # 默认 2K：1440×2560 → output/ep12/video.mp4
+npm run render:1080p -- ep12     # 1080×1920 → output/ep12/video-1080p.mp4
+npm run render:4k -- ep12        # 2160×3840 → output/ep12/video-4k.mp4
+```
+
+期数写 `ep12` 或 `12` 都可以。导出后自动把音频统一到 −14 LUFS、真峰值 ≤ −1 dBTP（只重编码音频，画面原样复制），本期有封面时同时导出 `output/<ep>/cover.png`。可选参数：`--frames 2100-2190` 只导出一段用来检查，`--no-cover` 不导出封面，`--no-loudnorm` 跳过响度处理。
+
+脚本默认用本机安装的 Google Chrome 渲染（Remotion 自带的 headless Chrome 在新版 macOS 上会崩溃），也可以用环境变量 `REMOTION_BROWSER` 指定浏览器路径。
+
 ## 个人素材不入库
 
 口播视频、字幕和时间轴属于个人素材，`.gitignore` 排除了 `public/` 下除音效 `public/sfx/` 以外的全部内容，以及 `episodes/*.subtitles.json`。
